@@ -1,0 +1,8 @@
+{
+  "name": "Hospital Patient Flow Pro",
+  "description": "A comprehensive real-time patient journey management system featuring staff dashboards and public displays for streamlined hospital operations.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}

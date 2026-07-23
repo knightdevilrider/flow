@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Patient": {
+      "title": "Patient",
+      "description": "Active patient record being audited in real-time.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique Patient ID" },
+        "name": { "type": "string", "description": "Patient Name" },
+        "age": { "type": "number" },
+        "gender": { "type": "string" },
+        "address": { "type": "string" },
+        "pincode": { "type": "string" },
+        "geographicZone": { "type": "string" },
+        "travelDistanceKm": { "type": "number" },
+        "category": { "type": "string", "enum": ["OPD", "IPD", "Emergency"] },
+        "isUnplannedReturn24Hr": { "type": "boolean" },
+        "payerType": { "type": "string" },
+        "abhaStatus": { "type": "string" },
+        "abhaConsentFetchTimeSec": { "type": "number" },
+        "tpaPreAuthTime": { "type": "number" },
+        "tpaApprovalTime": { "type": "number" },
+        "isRedChannelBypass": { "type": "boolean" },
+        "bypassJustification": { "type": "string" },
+        "triageUrgency": { "type": "string" },
+        "triageHighRiskAlert": { "type": "boolean" },
+        "nabhPainAssessmentDone": { "type": "boolean" },
+        "nabhInitialAssessmentTimeMins": { "type": "number" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "history": { "type": "array", "description": "List of milestones" },
+        "prescribedItemsCount": { "type": "number" },
+        "dispensedItemsCount": { "type": "number" },
+        "prescriptionSubstitutionFlag": { "type": "boolean" },
+        "diagnosisICD": { "type": "string" },
+        "wardAdmissionOrdered": { "type": "boolean" },
+        "wardOrderTime": { "type": "number" },
+        "wardAllocationTime": { "type": "number" },
+        "wardBedArrivalTime": { "type": "number" },
+        "wardStaffId": { "type": "string" },
+        "allocatedBedNumber": { "type": "string" },
+        "crossConsultTriggered": { "type": "boolean" }
+      },
+      "required": ["id", "name", "status"]
+    }
+  },
+  "firestore": {
+    "patients": {
+      "schema": "Patient",
+      "description": "Collection of active patient audit records."
+    },
+    "doctors": {
+      "description": "Registered medical doctors and their profiles."
+    },
+    "staff": {
+      "description": "Hospital staff members across various departments."
+    },
+    "roster": {
+      "description": "Global duty roster and shift assignments."
+    },
+    "wards": {
+      "description": "Hospital ward configurations and bed status."
+    }
+  }
+}

@@ -1,27 +1,79 @@
 
 import React, { useState } from 'react';
-import { Patient, PatientStatus } from '../types';
+import { Patient, PatientStatus, Theme } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
+import PatientContactModal from '../components/PatientContactModal';
 
 interface StaffMedicalProps {
   patients: Patient[];
+  theme: Theme;
+  isAdmin?: boolean;
+  onEditPatient?: (p: Patient) => void;
+  onDeletePatient?: (p: Patient) => void;
 }
 
-const StaffMedical: React.FC<StaffMedicalProps> = ({ patients }) => {
+const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, onEditPatient, onDeletePatient }) => {
   const [message, setMessage] = useState('');
   const [isArchiving, setIsArchiving] = useState(false);
+  const [prescribedCount, setPrescribedCount] = useState(0);
+  const [dispensedCount, setDispensedCount] = useState(0);
+  const [isSubstitution, setIsSubstitution] = useState(false);
+  const [isStockOut, setIsStockOut] = useState(false);
+  const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
 
-  const currentPatient = patients.find(p => p.status === PatientStatus.MEDICINE_WAITING);
-  const queue = patients.filter(p => p.status === PatientStatus.CONSULTATION_DONE && !p.isAbsent);
+  const themeStyles = {
+    light: {
+      card: 'bg-white border-[#D2D2D7] shadow-sm',
+      btn: 'bg-[#F5F5F7] hover:bg-[#E8E8ED] border-[#D2D2D7] text-[#1D1D1F]',
+      accent: 'text-[#0071e3]',
+      sub: 'text-[#86868b]',
+      header: 'text-[#1D1D1F]',
+      input: 'bg-white border-[#D2D2D7] text-[#1D1D1F]',
+      badge: 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/20',
+      success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    },
+    dark: {
+      card: 'bg-[#1D1D1F] border-[#333] shadow-2xl',
+      btn: 'bg-[#2D2D2D] hover:bg-[#3D3D3D] border-[#444] text-white',
+      accent: 'text-[#0A84FF]',
+      sub: 'text-[#86868b]',
+      header: 'text-white',
+      input: 'bg-[#2D2D2D] border-[#444] text-white',
+      badge: 'bg-[#0A84FF]/10 text-[#0A84FF] border-[#0A84FF]/20',
+      success: 'bg-emerald-900/10 text-emerald-400 border-emerald-900/20',
+    },
+    titanium: {
+      card: 'bg-[#4D4D4D] border-[#5D5D5D] shadow-2xl',
+      btn: 'bg-[#5D5D5D] hover:bg-[#6D6D6D] border-[#7D7D7D] text-[#E8E8ED]',
+      accent: 'text-[#0A84FF]',
+      sub: 'text-[#A1A1A6]',
+      header: 'text-[#E8E8ED]',
+      input: 'bg-[#5D5D5D] border-[#7D7D7D] text-[#E8E8ED]',
+      badge: 'bg-[#0A84FF]/10 text-[#0A84FF] border-[#0A84FF]/20',
+      success: 'bg-emerald-900/10 text-emerald-400 border-emerald-900/20',
+    }
+  };
+
+  const s = themeStyles[theme];
+
+  const currentPatient = patients.find(p => [PatientStatus.TREATMENT, PatientStatus.MEDICINE_WAITING].includes(p.status));
+  const queue = patients.filter(p => [PatientStatus.CONSULTATION_DONE, PatientStatus.TREATMENT].includes(p.status) && !p.isAbsent);
   const absentList = patients.filter(p => p.status === PatientStatus.CONSULTATION_DONE && p.isAbsent);
+  
+  const isLabMode = currentPatient?.status === PatientStatus.TREATMENT;
 
   const handleCallNext = async () => {
-    const next = mockFirestore.getNextInQueue(patients, PatientStatus.CONSULTATION_DONE);
+    // Priority 1: Call for Pharmacy if any
+    let next = mockFirestore.getNextInQueue(patients, PatientStatus.CONSULTATION_DONE);
+    // Priority 2: Call for Lab if any
+    if (!next) next = patients.find(p => p.status === PatientStatus.TREATMENT && !p.isAbsent);
+
     if (next) {
-      await mockFirestore.callPatient(next.id, PatientStatus.MEDICINE_WAITING, patients);
-      setMessage(`Calling ${next.name} for Pharmacy Collection.`);
+      const targetStatus = next.status === PatientStatus.TREATMENT ? PatientStatus.TREATMENT : PatientStatus.MEDICINE_WAITING;
+      await mockFirestore.callPatient(next.id, targetStatus, patients);
+      setMessage(`Calling ${next.name}`);
     } else {
-      setMessage("No pending prescriptions.");
+      setMessage("No pending cases");
     }
     setTimeout(() => setMessage(''), 3000);
   };
@@ -29,149 +81,229 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients }) => {
   const handleDispense = async () => {
     if (!currentPatient) return;
     setIsArchiving(true);
-    setMessage('ARCHIVE_SYNC_INITIATED...');
+    setMessage('Recording fulfillment...');
     
-    await mockFirestore.updatePatient(currentPatient.id, { status: PatientStatus.COMPLETED });
+    if (isLabMode) {
+      await mockFirestore.updatePatientAudited(currentPatient.id, {
+        status: PatientStatus.DOCTOR_RECONSULT,
+        // Mocking some lab metrics for the audit trail
+        history: [
+          ...currentPatient.history,
+          {
+            stage: PatientStatus.TREATMENT,
+            entryTime: Date.now() - 300000,
+            procedureStartTime: Date.now() - 240000,
+            procedureExitTime: Date.now() - 60000,
+            resultGenTime: Date.now() - 30000,
+            handoverTime: Date.now(),
+            exitTime: Date.now(),
+            authorId: 'LAB_TECH_ID_4',
+            slaBreach: false
+          }
+        ]
+      }, 'Laboratory Investigation Completed', 'LAB_TECH_ID_4');
+    } else {
+      await mockFirestore.updatePatientAudited(currentPatient.id, { 
+        status: PatientStatus.COMPLETED,
+        prescribedItemsCount: prescribedCount,
+        dispensedItemsCount: dispensedCount,
+        prescriptionSubstitutionFlag: isSubstitution
+      }, 'Pharmacy Dispensing Completed', 'PHARMACIST_ID_7');
+    }
     
     setTimeout(() => {
       setIsArchiving(false);
-      setMessage('DISPENSING_CONFIRMED // CLOUD_SYNC_COMPLETE');
+      setMessage(isLabMode ? 'Lab Results Sent' : 'Completed & Synced');
       setTimeout(handleCallNext, 1000);
     }, 2000);
   };
 
   return (
-    <div className="w-full max-w-[1800px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 py-10 px-6 animate-slide-up">
-      <div className="lg:col-span-8 space-y-10">
-        {/* Pharmacy HUD Header */}
-        <div className="glass p-8 rounded-[3rem] flex justify-between items-center border-slate-800">
-           <div className="flex items-center gap-6">
-              <div className="w-16 h-16 glass rounded-2xl flex items-center justify-center text-3xl border-pink-500/30">💊</div>
-              <div>
-                 <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Pharma_Terminal</h2>
-                 <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${isArchiving ? 'bg-pink-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`}></div>
-                    <span className="mono text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                       {isArchiving ? 'Syncing to Google Matrix...' : 'Supply Stream Active'}
-                    </span>
-                 </div>
-              </div>
-           </div>
-           <div className="text-right">
-              <p className="mono text-[9px] text-slate-600 uppercase tracking-widest mb-1 font-black">Prescription Backlog</p>
-              <p className="text-3xl font-black text-white italic">{queue.length} <span className="text-xs text-slate-700 not-italic uppercase tracking-widest ml-2">Units</span></p>
-           </div>
-        </div>
-
-        {/* Current Dispensing Node */}
-        <section className="glass p-12 rounded-[4rem] border-2 border-pink-500/30 relative overflow-hidden">
-          <div className="absolute top-0 right-0 px-8 py-3 bg-pink-500 text-[#020617] text-[10px] font-black uppercase tracking-widest rounded-bl-3xl italic">PHARMA_DISPENSE</div>
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <PatientContactModal 
+        patient={viewingPatient} 
+        onClose={() => setViewingPatient(null)} 
+        isAdmin={isAdmin}
+        onEdit={onEditPatient}
+        onDelete={onDeletePatient}
+      />
+      <div className="lg:col-span-3 space-y-6">
+        <section className={`p-6 sm:p-8 rounded-[2rem] border shadow-xl relative overflow-hidden ${s.card}`}>
+          <div className={`absolute top-0 right-0 px-6 py-2 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-2xl shadow-lg ${isLabMode ? 'bg-cyan-600' : 'bg-pink-600'}`}>
+            {isLabMode ? 'Clinical Lab / Investigation' : 'Pharmacy Fulfillment'}
+          </div>
           
           {currentPatient ? (
-            <div className="flex flex-col xl:flex-row gap-12 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="w-56 h-56 rounded-[3.5rem] overflow-hidden border-4 border-pink-500/30 shadow-2xl flex-shrink-0 bg-slate-900">
+            <div className="flex flex-col sm:flex-row gap-8 items-center animate-in slide-in-from-bottom-4">
+              <div 
+                onClick={() => setViewingPatient(currentPatient)}
+                className={`w-32 h-32 sm:w-48 sm:h-48 rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden border-4 shadow-lg shrink-0 transition-transform cursor-pointer hover:scale-105 active:scale-95 ${theme === 'light' ? 'border-white' : 'border-[#333]'}`}
+              >
                 {currentPatient.photo ? (
-                  <img src={currentPatient.photo} alt={currentPatient.name} className="w-full h-full object-cover grayscale brightness-110" />
+                  <img src={currentPatient.photo} alt={currentPatient.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-8xl">👤</div>
+                  <div className={`w-full h-full flex items-center justify-center text-5xl sm:text-7xl ${s.btn}`}>👤</div>
                 )}
               </div>
-              <div className="flex-1 space-y-8">
+              <div className="flex-1 w-full space-y-4">
                 <div>
-                  <h3 className="text-6xl font-black text-white italic tracking-tighter uppercase leading-none">{currentPatient.name}</h3>
-                  <p className="mono text-[11px] font-black text-pink-400 uppercase tracking-[0.4em] mt-3">Identity_Link: {currentPatient.id}</p>
+                  <h3 
+                    onClick={() => setViewingPatient(currentPatient)}
+                    className={`text-3xl sm:text-4xl font-black tracking-tight leading-tight cursor-pointer hover:text-blue-500 transition-colors ${s.header}`}
+                  >
+                    {currentPatient.name}
+                  </h3>
+                  <p className={`text-[8px] font-black uppercase tracking-widest mt-2 ${s.sub}`}>ID: {currentPatient.id} • {isLabMode ? 'STG 5: INVESTIGATION' : 'STG 8: PHARMACY'}</p>
                 </div>
                 
-                <div className="p-8 glass rounded-[2.5rem] border border-slate-800 shadow-inner">
-                  <h4 className="mono text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Clinical Directive</h4>
-                  <p className="text-3xl font-black text-pink-400 leading-tight italic">"{currentPatient.prescription}"</p>
+                <div className={`p-6 rounded-2xl border-2 shadow-inner group transition-all ${s.btn}`}>
+                  <h4 className={`text-[8px] font-black uppercase tracking-widest mb-2 opacity-40 ${s.sub}`}>Medical Directives</h4>
+                  <p className={`text-lg sm:text-xl font-black tracking-tight leading-tight ${s.header}`}>"{currentPatient.directive || currentPatient.prescription}"</p>
                 </div>
 
-                <div className="flex gap-4 pt-4">
+                {!isLabMode && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Items Prescribed</label>
+                        <input 
+                          type="number"
+                          value={prescribedCount}
+                          onChange={(e) => setPrescribedCount(+e.target.value)}
+                          className={`w-full rounded-xl px-4 py-3 font-black text-xs border-2 outline-none transition-all ${s.input}`}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Items Dispensed</label>
+                        <input 
+                          type="number"
+                          value={dispensedCount}
+                          onChange={(e) => setDispensedCount(+e.target.value)}
+                          className={`w-full rounded-xl px-4 py-3 font-black text-xs border-2 outline-none transition-all ${s.input} ${prescribedCount !== dispensedCount ? 'border-red-500/30' : ''}`}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={() => setIsSubstitution(!isSubstitution)}
+                        className={`flex-1 py-3 rounded-xl font-black text-[9px] border-2 transition-all ${isSubstitution ? 'bg-amber-500 text-white border-amber-500' : s.btn}`}
+                      >
+                        SUBSTITUTION {isSubstitution ? 'YES' : 'NO'}
+                      </button>
+                      <button 
+                        onClick={() => setIsStockOut(!isStockOut)}
+                        className={`flex-1 py-3 rounded-xl font-black text-[9px] border-2 transition-all ${isStockOut ? 'bg-red-500 text-white border-red-500' : s.btn}`}
+                      >
+                        STOCK OUT {isStockOut ? 'YES' : 'NO'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-4">
                   <button 
                     onClick={handleDispense}
                     disabled={isArchiving}
-                    className="flex-1 py-8 bg-pink-600 hover:bg-pink-500 disabled:opacity-30 text-white font-black rounded-[2.5rem] transition-all uppercase tracking-[0.3em] italic text-sm shadow-xl shadow-pink-500/10 active:scale-95"
+                    className={`flex-1 py-4 rounded-2xl font-black transition-all uppercase tracking-[0.3em] text-[10px] shadow-xl disabled:opacity-50 active:scale-95 ${isLabMode ? 'bg-cyan-600' : 'bg-emerald-600'} text-white`}
                   >
-                    {isArchiving ? 'UPLINKING_TO_ARCHIVES...' : 'EXECUTE_DISPENSE_AND_ARCHIVE'}
+                    {isArchiving ? 'RECORDING...' : isLabMode ? 'SUBMIT RESULTS' : 'FINALIZE DISCHARGE'}
                   </button>
                   <button 
                     onClick={handleCallNext}
-                    className="px-12 py-8 glass border-slate-800 text-slate-500 hover:text-white transition-all font-black rounded-[2.5rem] uppercase tracking-widest text-xs"
+                    className={`px-8 py-4 rounded-2xl font-black transition-all uppercase tracking-[0.3em] text-[10px] border-2 shadow-lg active:scale-95 ${s.btn}`}
                   >
-                    Skip_Node
+                    SKIP
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="py-24 text-center">
-              <div className="text-7xl mb-10 opacity-20">🧬</div>
-              <h4 className="text-slate-500 font-black uppercase tracking-[0.6em] mb-4">Awaiting Clinical Data...</h4>
-              <button 
-                onClick={handleCallNext}
-                className="px-12 py-6 glass border-slate-700 hover:border-pink-500 text-slate-500 hover:text-pink-400 font-black rounded-[2.5rem] transition-all uppercase tracking-widest italic"
-              >
-                Scan_Next_Prescription
-              </button>
+            <div className="py-16 sm:py-24 text-center space-y-8">
+              <div className="text-6xl sm:text-8xl opacity-10 animate-pulse">🧬</div>
+              <div>
+                <h4 className={`text-xl sm:text-2xl font-black uppercase tracking-tight mb-4 ${s.header}`}>Fulfillment</h4>
+                <button 
+                  onClick={handleCallNext}
+                  className={`px-12 py-5 rounded-2xl font-black transition-all uppercase tracking-[0.3em] text-[10px] shadow-xl active:scale-95 ${theme === 'light' ? 'bg-[#0071e3] text-white' : 'bg-[#0A84FF] text-white'}`}
+                >
+                  CALL NEXT
+                </button>
+              </div>
             </div>
           )}
         </section>
 
-        {/* Local Pipeline */}
-        <section>
-          <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-8 px-6">Supply Pipeline ({queue.length})</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {queue.slice(0, 6).map((p, idx) => (
-              <div key={p.id} className="glass p-6 rounded-[2.5rem] border border-slate-800 flex items-center justify-between group hover:border-pink-500/20 transition-all">
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 rounded-2xl glass flex items-center justify-center font-black text-slate-700 italic border border-slate-800 group-hover:text-pink-500 transition-colors">{idx + 1}</div>
-                  <div>
-                    <div className="text-lg font-black text-white italic group-hover:text-pink-400 transition-colors uppercase">{p.name}</div>
-                    <div className="mono text-[9px] font-black text-slate-700 uppercase">NODE_{p.id.slice(-6)}</div>
-                  </div>
+        <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
+          <h3 className={`text-xs font-black uppercase tracking-tight mb-4 ${s.header}`}>Supply Queue ({queue.length})</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {queue.slice(0, 8).map((p, idx) => (
+              <div 
+                key={p.id} 
+                onClick={() => setViewingPatient(p)}
+                className={`p-4 rounded-xl border flex items-center gap-3 group transition-all shadow-sm active:scale-95 cursor-pointer hover:shadow-md ${s.btn} hover:scale-[1.02]`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black border shrink-0 ${s.card}`}>{idx + 1}</div>
+                <div className="truncate">
+                  <div className={`text-[10px] font-black truncate ${s.header}`}>{p.name}</div>
+                  <div className={`text-[8px] font-black uppercase opacity-40 ${s.sub}`}>{p.id}</div>
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+        
+        {/* Processed Registry */}
+        <section className="space-y-4 pt-6 border-t border-white/5">
+          <div className="flex items-center justify-between">
+            <h3 className={`text-sm font-black uppercase tracking-widest ${s.sub}`}>Processed Registry (Fulfillment Done)</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-60 hover:opacity-100 transition-opacity">
+            {patients.filter(p => p.status === PatientStatus.COMPLETED || p.status === PatientStatus.DOCTOR_RECONSULT)
+              .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+              .slice(0, 8)
+              .map((p) => (
+                <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
+                   <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
+                   <div className="min-w-0">
+                      <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
+                      <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>{p.status === PatientStatus.COMPLETED ? 'Meds Dispensed' : 'Lab Done'}</div>
+                   </div>
+                </div>
+              ))
+            }
           </div>
         </section>
       </div>
 
-      <div className="lg:col-span-4 space-y-10">
-        <section className="glass p-8 rounded-[3.5rem] border-slate-800">
-          <h3 className="mono text-[10px] font-black text-red-500 uppercase tracking-widest mb-10 border-b border-slate-900 pb-4 italic">Skipped_Reentry_List</h3>
-          <div className="space-y-4">
-            {absentList.map(p => (
-              <div key={p.id} className="p-6 glass-bright rounded-3xl border border-red-500/10 flex justify-between items-center group">
-                <div className="flex flex-col">
-                   <span className="text-sm font-black text-slate-400 italic uppercase">{p.name}</span>
-                   <span className="mono text-[8px] text-slate-700 font-black uppercase mt-1">ID_{p.id.slice(-8)}</span>
+      <div className="space-y-6">
+        <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
+          <h3 className={`text-[10px] font-black uppercase tracking-widest mb-4 text-red-500`}>MISSING</h3>
+          <div className="space-y-2">
+            {absentList.length > 0 ? absentList.slice(0, 4).map(p => (
+              <div key={p.id} className={`p-3 rounded-xl border flex justify-between items-center shadow-sm ${s.btn}`}>
+                <div className="truncate pr-2">
+                   <span className={`text-[10px] font-black truncate block ${s.header}`}>{p.name}</span>
+                   <span className={`text-[8px] font-black uppercase opacity-40 block ${s.sub}`}>{p.id}</span>
                 </div>
                 <button 
                   onClick={() => mockFirestore.prioritizePatient(p.id)}
-                  className="px-4 py-2 bg-pink-500/10 text-pink-500 border border-pink-500/20 rounded-xl mono text-[8px] font-black uppercase hover:bg-pink-500 hover:text-white transition-all"
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${s.badge}`}
                 >
-                  Prioritize
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </button>
               </div>
-            ))}
-            {absentList.length === 0 && <p className="text-center py-10 mono text-[9px] font-black text-slate-800 uppercase tracking-[0.5em] italic">No_Abstentions</p>}
+            )) : (
+              <p className={`text-[8px] font-black uppercase tracking-widest opacity-20 text-center py-4 ${s.sub}`}>No pending recoveries</p>
+            )}
           </div>
         </section>
 
-        {message && <div className="p-6 bg-[#020617] border border-slate-900 text-slate-500 rounded-3xl text-center text-[10px] font-black animate-pulse uppercase tracking-[0.3em]">{message}</div>}
-
-        <div className="p-8 glass rounded-[3rem] border-slate-800/40 text-center">
-           <p className="mono text-[10px] text-slate-600 font-black uppercase tracking-widest mb-4">Grid_Archiver_v1.2</p>
-           <div className="flex justify-center gap-2">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="w-1 h-1 rounded-full bg-slate-800 animate-pulse" style={{ animationDelay: `${i * 200}ms` }}></div>
-              ))}
-           </div>
-        </div>
+        {message && <div className={`p-4 rounded-2xl text-center text-[10px] font-black border shadow-lg ${s.success}`}>{message}</div>}
       </div>
     </div>
   );
 };
 
 export default StaffMedical;
+

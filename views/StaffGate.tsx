@@ -1,13 +1,20 @@
 
-import React, { useState } from 'react';
-import { Patient, PatientStatus, PatientCategory } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { Patient, PatientStatus, PatientCategory, Theme } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
+import { AreaAutocomplete } from '../components/AreaAutocomplete';
+import { LOCALITY_DATABASE, LocalityInfo } from '../constants';
 
 interface StaffGateProps {
   patients: Patient[];
+  theme: Theme;
+  waitingCount: number;
+  isAdmin?: boolean;
+  onEditPatient?: (p: Patient) => void;
+  onDeletePatient?: (p: Patient) => void;
 }
 
-const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
+const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, isAdmin, onEditPatient, onDeletePatient }) => {
   const [step, setStep] = useState<'selection' | 'form'>('selection');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -21,6 +28,12 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
     age: '',
     gender: 'Male',
     address: '',
+    area: '',
+    pincode: '',
+    geographicZone: 'Urban-Ahmednagar' as const,
+    travelDistanceKm: 0,
+    isRedChannelBypass: false,
+    bypassJustification: '',
     photo: '',
     insuranceType: 'Cash/Self-Pay',
     isForeigner: false,
@@ -30,8 +43,36 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
     emergencyContact: ''
   });
 
-  // Dynamically calculate waiting patients from current live state
-  const waitingCount = patients.filter(p => p.status !== PatientStatus.COMPLETED).length;
+  const themeStyles = {
+    light: {
+      card: 'bg-white border-[#D2D2D7] shadow-sm',
+      btn: 'bg-[#F5F5F7] hover:bg-[#E8E8ED] border-[#D2D2D7] text-[#1D1D1F]',
+      accent: 'text-[#0071e3]',
+      sub: 'text-[#86868b]',
+      header: 'text-[#1D1D1F]',
+      input: 'bg-white border-[#D2D2D7] text-[#1D1D1F]',
+    },
+    dark: {
+      card: 'bg-[#1D1D1F] border-[#333] shadow-2xl',
+      btn: 'bg-[#2D2D2D] hover:bg-[#3D3D3D] border-[#444] text-white',
+      accent: 'text-[#0A84FF]',
+      sub: 'text-[#86868b]',
+      header: 'text-white',
+      input: 'bg-[#2D2D2D] border-[#444] text-white',
+    },
+    titanium: {
+      card: 'bg-[#4D4D4D] border-[#5D5D5D] shadow-2xl',
+      btn: 'bg-[#5D5D5D] hover:bg-[#6D6D6D] border-[#7D7D7D] text-[#E8E8ED]',
+      accent: 'text-[#0A84FF]',
+      sub: 'text-[#A1A1A6]',
+      header: 'text-[#E8E8ED]',
+      input: 'bg-[#5D5D5D] border-[#7D7D7D] text-[#E8E8ED]',
+    }
+  };
+
+  const s = themeStyles[theme];
+
+  // Dynamically calculate waiting patients from current live state (removed from internal to use prop)
 
   const categories = [
     { id: PatientCategory.OPD, icon: '🩺', desc: 'Check-ups, Tests, Advice', color: 'blue' },
@@ -42,11 +83,183 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
   ];
 
   const admittedPatients = patients.filter(p => p.category === PatientCategory.IPD && p.status !== PatientStatus.COMPLETED);
+  
+  const [isManualArea, setIsManualArea] = useState(false);
+
+  const handleLocalitySelect = (locality: LocalityInfo | null) => {
+    if (locality) {
+      setFormData(prev => ({
+        ...prev,
+        area: locality.name,
+        pincode: locality.pincode,
+        geographicZone: locality.zone,
+        travelDistanceKm: locality.distance
+      }));
+      setIsManualArea(false);
+    } else {
+      setIsManualArea(true);
+      setFormData(prev => ({
+        ...prev,
+        area: '',
+        geographicZone: 'Rural-Taluka' // Default to rural for 'Other'
+      }));
+    }
+  };
+
+  const handlePincodeChange = (pin: string) => {
+    const cleanedPin = pin.replace(/\D/g, '').slice(0, 6);
+    setFormData(prev => ({ ...prev, pincode: cleanedPin }));
+    
+    // Auto-fill logic for pincode
+    if (cleanedPin.length === 6) {
+      const match = LOCALITY_DATABASE.find(l => l.pincode === cleanedPin);
+      if (match) {
+        setFormData(prev => ({
+          ...prev,
+          area: match.name,
+          geographicZone: match.zone,
+          travelDistanceKm: match.distance
+        }));
+        setIsManualArea(false);
+      }
+    }
+  };
 
   const handleCategorySelect = (cat: PatientCategory) => {
     setFormData({ ...formData, category: cat });
     setError('');
     setStep('form');
+  };
+
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+
+  // Check for multiple cameras
+  useEffect(() => {
+    const checkCameras = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        setHasMultipleCameras(videoDevices.length > 1);
+      } catch (err) {
+        console.error("Error checking devices:", err);
+      }
+    };
+    checkCameras();
+  }, []);
+
+  // Attach stream to video element when it becomes available in the DOM
+  useEffect(() => {
+    let isMounted = true;
+    if (isCameraActive && stream && videoRef.current) {
+      const video = videoRef.current;
+      video.srcObject = stream;
+      
+      const playVideo = async () => {
+        try {
+          await video.play();
+        } catch (err) {
+          console.error("Video play error:", err);
+          if (isMounted) setCameraError("Failed to start video playback. Please click 'Retake'.");
+        }
+      };
+      playVideo();
+    }
+    return () => { isMounted = false; };
+  }, [isCameraActive, stream]);
+
+  // Clean up stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
+  const startCamera = async (currentFacingMode: 'user' | 'environment' = facingMode) => {
+    setCameraError(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera API not supported in this browser.");
+      }
+
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      // Try with specific facingMode
+      const constraints: MediaStreamConstraints = {
+        video: { 
+          width: { ideal: 1280 }, 
+          height: { ideal: 720 },
+          facingMode: currentFacingMode
+        }
+      };
+      
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        setStream(mediaStream);
+        setIsCameraActive(true);
+      } catch (innerErr) {
+        console.warn("Retrying with simple constraints...");
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setStream(fallbackStream);
+        setIsCameraActive(true);
+      }
+      
+      setError('');
+    } catch (err: any) {
+      console.error("Camera Access Error:", err);
+      setCameraError(err.message || "Camera access failed.");
+      setIsCameraActive(false);
+      setError("Camera permission denied or camera not found. Please ensure camera access is allowed.");
+    }
+  };
+
+  const toggleCamera = () => {
+    const nextMode = facingMode === 'user' ? 'environment' : 'user';
+    setFacingMode(nextMode);
+    if (isCameraActive) {
+      startCamera(nextMode);
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setIsCameraActive(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current) {
+      try {
+        const video = videoRef.current;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          if (facingMode === 'user') {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1); // Flip horizontally to match front-camera preview
+          }
+          ctx.drawImage(video, 0, 0);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setFormData({ ...formData, photo: dataUrl });
+          stopCamera();
+        }
+      } catch (err) {
+        console.error("Capture error:", err);
+        setCameraError("Failed to capture photo. Please try again.");
+      }
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,6 +287,12 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
         age: formData.age,
         gender: formData.gender,
         address: formData.address,
+        area: formData.area,
+        pincode: formData.pincode,
+        geographicZone: formData.geographicZone,
+        travelDistanceKm: formData.travelDistanceKm,
+        isRedChannelBypass: formData.isRedChannelBypass,
+        bypassJustification: formData.bypassJustification,
         photo: formData.photo,
         insuranceType: formData.insuranceType,
         isForeigner: formData.isForeigner,
@@ -81,6 +300,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
         targetPatientId: formData.targetPatientId,
         relationship: formData.relationship,
         emergencyContact: formData.emergencyContact,
+        activeVisitorsCount: 0,
         expiryTimestamp: formData.category === PatientCategory.VISITOR ? Date.now() + (2 * 60 * 60 * 1000) : undefined
       });
 
@@ -97,6 +317,12 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
           age: '',
           gender: 'Male',
           address: '',
+          area: '',
+          pincode: '',
+          geographicZone: 'Urban-Ahmednagar',
+          travelDistanceKm: 0,
+          isRedChannelBypass: false,
+          bypassJustification: '',
           photo: '',
           insuranceType: 'Cash/Self-Pay',
           isForeigner: false,
@@ -115,74 +341,63 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
 
   if (step === 'selection') {
     return (
-      <div className="min-h-[calc(100vh-140px)] flex flex-col items-center py-6 px-4 bg-[#0a1121]">
-        {/* Header Bar */}
-        <div className="w-full max-w-[1400px] flex justify-between items-center mb-16">
-          <button className="w-12 h-12 flex items-center justify-center bg-slate-900/40 border border-slate-800 rounded-xl text-slate-500 hover:text-white transition-all">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-          </button>
-          <h2 className="text-2xl font-black text-white tracking-[0.2em] uppercase opacity-90">Gate Registration Terminal</h2>
-          <div className="flex items-center gap-2">
-             <span className="text-slate-500 font-black uppercase text-[10px] tracking-widest mr-2">Hospital</span>
-             <span className="text-xl font-black text-white uppercase tracking-tighter">Total Patients Waiting: <span className="text-emerald-400">{waitingCount}</span></span>
-             <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse ml-1"></div>
-          </div>
-        </div>
-
+      <div className="flex flex-col items-center py-4 sm:py-8 px-4 w-full">
         {/* Title Group */}
-        <div className="text-center mb-16">
-          <h1 className="text-6xl font-black text-white mb-4 tracking-tight">Registration Intake</h1>
-          <p className="text-slate-400 font-medium text-lg max-w-2xl mx-auto">Please select the primary reason for this visit to begin registration.</p>
+        <div className="text-center mb-6 sm:mb-10 w-full max-w-4xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+            <h1 className={`text-2xl sm:text-4xl font-black tracking-tight ${s.header}`}>Intake System</h1>
+            
+            <div className="flex flex-row sm:flex-col items-center sm:items-start justify-center px-4 py-1 sm:py-0 sm:pl-8 border-t sm:border-t-0 sm:border-l border-emerald-500/20 w-full sm:w-auto">
+              <span className="text-[10px] sm:text-lg font-black uppercase tracking-[0.1em] text-emerald-500 leading-none mr-2 sm:mr-0">
+                Waiting
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl sm:text-4xl font-black tracking-tight text-emerald-500 tabular-nums leading-none">
+                  {waitingCount}
+                </span>
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Main Selection Grid (3+2) */}
-        <div className="w-full max-w-[1200px] space-y-8 pb-12">
-          {/* Row 1: 3 Items */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {categories.slice(0, 3).map((cat) => (
+        {/* Main Selection Grid */}
+        <div className="w-full max-w-5xl space-y-4 sm:space-y-6 pb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => handleCategorySelect(cat.id)}
-                className="group relative flex flex-col p-10 bg-[#161f30]/40 border-2 border-slate-800/40 rounded-[2.5rem] text-left transition-all duration-300 hover:border-blue-500/60 hover:bg-[#161f30] hover:shadow-[0_20px_60px_-15px_rgba(59,130,246,0.3)] min-h-[340px]"
+                className={`group relative flex flex-col items-center text-center p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border transition-all duration-300 min-h-[120px] sm:min-h-[160px] ${s.card} hover:scale-[1.02] active:scale-95 shadow-md hover:shadow-xl`}
               >
-                {/* Max-sized icons for staff efficiency */}
-                <div className="w-24 h-24 bg-[#1e293b] rounded-3xl flex items-center justify-center text-7xl mb-12 group-hover:scale-110 transition-transform duration-500 shadow-2xl border-2 border-slate-700/50">
+                <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-3xl mb-3 sm:mb-4 shadow-inner border transition-all ${s.btn}`}>
                   {cat.icon}
                 </div>
-                <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-tight leading-tight">{cat.id}</h3>
-                <p className="text-slate-400 font-bold text-base leading-relaxed max-w-[240px] opacity-80">{cat.desc}</p>
-                <div className="absolute bottom-10 right-10 text-blue-500 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-500">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          {/* Row 2: 2 Items Centered */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[800px] mx-auto">
-            {categories.slice(3, 5).map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => handleCategorySelect(cat.id)}
-                className="group relative flex flex-col p-10 bg-[#161f30]/40 border-2 border-slate-800/40 rounded-[2.5rem] text-left transition-all duration-300 hover:border-blue-500/60 hover:bg-[#161f30] hover:shadow-[0_20px_60px_-15px_rgba(59,130,246,0.3)] min-h-[340px]"
-              >
-                {/* Max-sized icons for staff efficiency */}
-                <div className="w-24 h-24 bg-[#1e293b] rounded-3xl flex items-center justify-center text-7xl mb-12 group-hover:scale-110 transition-transform duration-500 shadow-2xl border-2 border-slate-700/50">
-                  {cat.icon}
-                </div>
-                <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-tight leading-tight">{cat.id}</h3>
-                <p className="text-slate-400 font-bold text-base leading-relaxed max-w-[240px] opacity-80">{cat.desc}</p>
-                <div className="absolute bottom-10 right-10 text-blue-500 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-500">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </div>
+                <h3 className={`text-[10px] sm:text-xs font-black mb-1 uppercase tracking-widest leading-tight ${s.header}`}>{cat.id}</h3>
+                <p className={`font-bold text-[8px] sm:text-[10px] leading-tight opacity-60 ${s.sub}`}>{cat.desc}</p>
               </button>
             ))}
           </div>
         </div>
         
-        {/* Simple Footer */}
-        <div className="w-full text-center py-10 border-t border-slate-800/30 mt-auto">
-          <p className="text-[10px] font-black text-slate-700 tracking-[0.5em] uppercase">© 2024 Hospital Patient Flow Solutions • System Active</p>
+        {/* Processed Registry (Selection View) */}
+        <div className="w-full max-w-5xl mx-auto px-4 mt-12 pb-10 border-t border-white/5 pt-8">
+          <h3 className={`text-sm font-black uppercase tracking-widest mb-6 ${s.sub}`}>Processed Registry (Gate Entry)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-70 hover:opacity-100 transition-opacity">
+            {patients.filter(p => p.status === PatientStatus.RECEPTION_WAITING)
+              .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+              .slice(0, 8)
+              .map((p) => (
+                <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
+                   <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
+                   <div className="min-w-0">
+                      <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
+                      <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>{p.category} • {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                   </div>
+                </div>
+              ))
+            }
+          </div>
         </div>
       </div>
     );
@@ -191,137 +406,239 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
   const isVisitorOrAttendant = formData.category === PatientCategory.VISITOR || formData.category === PatientCategory.ATTENDANT;
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 bg-[#0a1121] min-h-screen">
+    <div className="max-w-5xl mx-auto py-4 sm:py-8 px-4 sm:px-6">
       {/* Form Header */}
-      <div className="flex justify-between items-center mb-8">
-        <button onClick={() => setStep('selection')} className="px-5 py-2.5 bg-slate-900/60 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-black transition-all border border-slate-800 flex items-center gap-2">
-          <span>←</span> Change Category
+      <div className="flex justify-between items-center mb-6 sm:mb-8 gap-4">
+        <button onClick={() => setStep('selection')} className={`px-6 py-2 rounded-full text-[10px] font-black transition-all border flex items-center justify-center gap-2 shadow-md active:scale-95 ${s.btn}`}>
+          <span>←</span> RETURN
         </button>
-        <div className="px-6 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 text-[10px] font-black uppercase tracking-[0.2em]">
-          Intake: {formData.category.toUpperCase()}
+        <div className={`px-6 py-2 border rounded-full text-[8px] font-black uppercase tracking-[0.2em] shadow-inner text-center ${s.btn}`}>
+          Intake: <span className={s.accent}>{formData.category}</span>
         </div>
       </div>
 
-      <div className="glass p-12 rounded-[3.5rem] border border-slate-800/60 shadow-2xl relative overflow-hidden bg-[#111827]/40">
+      <div className={`p-6 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all ${s.card}`}>
         {success && (
-          <div className="absolute inset-0 bg-slate-950/95 z-50 flex flex-col items-center justify-center animate-in fade-in">
-            <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mb-6 border-2 border-emerald-500/40 animate-bounce">
+          <div className="absolute inset-0 bg-white/95 dark:bg-black/95 z-50 flex flex-col items-center justify-center animate-in fade-in">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mb-6 border-2 border-emerald-500/40 animate-bounce shadow-xl">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>
             </div>
-            <h3 className="text-2xl font-black text-white uppercase tracking-tighter">Registration Success</h3>
+            <h3 className={`text-xl sm:text-2xl font-black uppercase tracking-widest ${s.header}`}>Registry Synced</h3>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-16">
-          {error && <div className="p-8 bg-red-500/5 border-2 border-red-500/20 rounded-[2.5rem] text-red-400 font-bold text-sm leading-relaxed text-center">{error}</div>}
+        <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-12">
+          {error && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 font-black text-xs text-center">{error}</div>}
           
           {/* Section 01: Linked Patient */}
           {isVisitorOrAttendant && (
-            <section className="animate-in slide-in-from-top-4">
-              <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-4">
-                <span className="w-1.5 h-6 bg-blue-500 rounded-full"></span> 01 Linked Admitted Patient
+            <section className="animate-in slide-in-from-top-2">
+              <h4 className={`text-[8px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-3 ${s.accent}`}>
+                <span className={`w-1 h-6 rounded-full ${theme === 'light' ? 'bg-[#0071e3]' : 'bg-[#0A84FF]'}`}></span> 01 PATIENT LINK
               </h4>
               <div className="space-y-2">
-                <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Select Admitted Patient (IPD)</label>
-                <select 
-                  required
-                  value={formData.targetPatientId}
-                  onChange={(e) => setFormData({ ...formData, targetPatientId: e.target.value })}
-                  className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500 text-lg appearance-none"
-                >
-                  <option value="">Select Patient...</option>
-                  {admittedPatients.map(p => <option key={p.id} value={p.id}>{p.name} (ID: {p.id})</option>)}
-                </select>
+                <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Select Admitted Patient</label>
+                <div className="relative">
+                  <select 
+                    required
+                    value={formData.targetPatientId}
+                    onChange={(e) => setFormData({ ...formData, targetPatientId: e.target.value })}
+                    className={`w-full rounded-xl sm:rounded-2xl px-4 py-3 sm:py-4 font-black outline-none border-2 transition-all text-xs sm:text-base appearance-none ${s.input} focus:ring-4 focus:ring-[#0071e3]/20 shadow-sm`}
+                  >
+                    <option value="">Select Patient from List...</option>
+                    {admittedPatients.map(p => <option key={p.id} value={p.id}>{p.name} (ID: {p.id})</option>)}
+                  </select>
+                </div>
               </div>
             </section>
           )}
 
-          {/* Section: Identity Proof */}
-          <section>
-            <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-4">
-              <span className="w-1.5 h-6 bg-blue-500 rounded-full"></span> 
-              {isVisitorOrAttendant ? '02' : '01'} Identity Proof
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">ID Document Type</label>
-                <select 
-                  value={formData.idType}
-                  onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
-                  className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500 text-lg appearance-none"
-                >
-                  <option>Aadhaar Card</option>
-                  <option>Driving License</option>
-                  <option>Passport</option>
-                  <option>Voter ID</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Document Number</label>
-                <input 
-                  type="text" 
-                  required 
-                  placeholder="Enter ID Number..."
-                  value={formData.idNumber} 
-                  onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })} 
-                  className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500 text-lg" 
-                />
-              </div>
-            </div>
-          </section>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
+            {/* Left Column: Form Fields */}
+            <div className="space-y-8">
+              {/* Section: Identity Proof */}
+              <section>
+                <h4 className={`text-[8px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-3 ${s.accent}`}>
+                  <span className={`w-1 h-6 rounded-full ${theme === 'light' ? 'bg-[#0071e3]' : 'bg-[#0A84FF]'}`}></span> 
+                  IDENTITY VERIFICATION
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>ID Type</label>
+                    <select 
+                      value={formData.idType}
+                      onChange={(e) => setFormData({ ...formData, idType: e.target.value })}
+                      className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`}
+                    >
+                      <option>Aadhaar Card</option>
+                      <option>Driving License</option>
+                      <option>Passport</option>
+                      <option>Voter ID</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>ID Number</label>
+                    <input 
+                      type="text" 
+                      required 
+                      placeholder="Number..."
+                      value={formData.idNumber} 
+                      onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })} 
+                      className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} 
+                    />
+                  </div>
+                </div>
+              </section>
 
-          {/* Section: Profile Details */}
-          <section>
-            <h4 className="text-[11px] font-black text-blue-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-4">
-              <span className="w-1.5 h-6 bg-blue-500 rounded-full"></span> 
-              {isVisitorOrAttendant ? '03' : '02'} Profile Details
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
-              <div className="md:col-span-7 space-y-8">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Full Legal Name</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="Enter name as per ID..."
-                    value={formData.name} 
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                    className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500 text-lg" 
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Mobile Number</label>
+              {/* Section: Profile Details */}
+              <section>
+                <h4 className={`text-[8px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-3 ${s.accent}`}>
+                  <span className={`w-1 h-6 rounded-full ${theme === 'light' ? 'bg-[#0071e3]' : 'bg-[#0A84FF]'}`}></span> 
+                  PROFILE DETAILS
+                </h4>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Full Legal Name</label>
                     <input 
-                      type="tel" 
+                      type="text" 
                       required 
-                      placeholder="+91 XXXXX XXXXX"
-                      value={formData.phone} 
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
-                      className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500 text-lg" 
+                      placeholder="Name..."
+                      value={formData.name} 
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                      className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-base ${s.input}`} 
                     />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Age</label>
-                    <input 
-                      type="number" 
-                      required 
-                      placeholder="Enter age..."
-                      value={formData.age} 
-                      onChange={(e) => setFormData({ ...formData, age: e.target.value })} 
-                      className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none focus:ring-2 focus:ring-blue-500 text-lg" 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Contact</label>
+                      <input 
+                        type="tel" 
+                        required 
+                        placeholder="+91..."
+                        value={formData.phone} 
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })} 
+                        className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Age</label>
+                      <input 
+                        type="number" 
+                        required 
+                        placeholder="Age..."
+                        value={formData.age} 
+                        onChange={(e) => setFormData({ ...formData, age: e.target.value })} 
+                        className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} 
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Geographic Zone</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(['Urban-Ahmednagar', 'Rural-Taluka'] as const).map(zone => (
+                        <button
+                          key={zone}
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, geographicZone: zone, area: '', travelDistanceKm: 0, pincode: '' });
+                            setIsManualArea(false);
+                          }}
+                          className={`py-2 px-3 rounded-xl border-2 text-[10px] font-black uppercase tracking-wider transition-all ${
+                            formData.geographicZone === zone 
+                              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600' 
+                              : `border-transparent ${theme === 'light' ? 'bg-[#F5F5F7]' : 'bg-[#2D2D2D]'}`
+                          }`}
+                        >
+                          {zone.replace('-', ' ')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Area / Locality</label>
+                    <AreaAutocomplete 
+                      value={formData.area} 
+                      onSelectLocality={handleLocalitySelect}
+                      onManualChange={(val) => setFormData({ ...formData, area: val })}
+                      theme={theme}
+                      styles={s}
+                      isManualMode={isManualArea}
+                      selectedZone={formData.geographicZone as any}
                     />
                   </div>
-                </div>
-                
-                {isVisitorOrAttendant && (
-                   <div>
-                      <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Relationship</label>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Pincode</label>
+                      <input 
+                        type="text" 
+                        required 
+                        maxLength={6}
+                        placeholder="6-digit..."
+                        value={formData.pincode} 
+                        onChange={(e) => handlePincodeChange(e.target.value)} 
+                        className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Distance (Km)</label>
+                      <input 
+                        type="number" 
+                        required 
+                        step="0.1"
+                        placeholder="Km..."
+                        value={formData.travelDistanceKm} 
+                        onChange={(e) => setFormData({ ...formData, travelDistanceKm: parseFloat(e.target.value) || 0 })} 
+                        className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Geographic Zone</label>
+                    <select 
+                      value={formData.geographicZone}
+                      onChange={(e) => setFormData({ ...formData, geographicZone: e.target.value as any })}
+                      className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`}
+                    >
+                      <option value="Urban-Ahmednagar">Urban-Ahmednagar</option>
+                      <option value="Rural-Taluka">Rural-Taluka</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 p-4 bg-red-500/5 rounded-2xl border border-red-500/10">
+                    <div className="flex items-center justify-between">
+                      <label className={`text-[8px] font-black uppercase tracking-widest text-red-500`}>Red Channel Bypass</label>
+                      <button 
+                        type="button"
+                        onClick={() => setFormData({ ...formData, isRedChannelBypass: !formData.isRedChannelBypass })}
+                        className={`w-10 h-6 rounded-full transition-all relative ${formData.isRedChannelBypass ? 'bg-red-500' : 'bg-slate-300'}`}
+                      >
+                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${formData.isRedChannelBypass ? 'left-5' : 'left-1'}`}></div>
+                      </button>
+                    </div>
+                    {formData.isRedChannelBypass && (
+                      <input 
+                        type="text" 
+                        required 
+                        placeholder="Justification (e.g. Trauma, AMI)..."
+                        value={formData.bypassJustification} 
+                        onChange={(e) => setFormData({ ...formData, bypassJustification: e.target.value })} 
+                        className={`w-full rounded-xl px-4 py-2 mt-2 font-black outline-none border-2 text-[10px] ${s.input}`} 
+                      />
+                    )}
+                  </div>
+                  
+                  {isVisitorOrAttendant && (
+                    <div className="space-y-2">
+                      <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Relationship</label>
                       <select 
                         required
                         value={formData.relationship}
                         onChange={(e) => setFormData({...formData, relationship: e.target.value})}
-                        className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none appearance-none text-lg"
+                        className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`}
                       >
                         <option value="">Select...</option>
                         <option>Spouse</option>
@@ -331,103 +648,151 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients }) => {
                         <option>Relative</option>
                         <option>Friend</option>
                       </select>
-                   </div>
-                )}
-
-                <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Medical Note / Brief Complaint</label>
-                  <textarea 
-                    placeholder="Enter any medical history or current complaint..."
-                    value={formData.medicalHistory} 
-                    onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })} 
-                    rows={4}
-                    className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-medium outline-none focus:ring-2 focus:ring-blue-500 text-base resize-none" 
-                  />
-                </div>
-              </div>
-              <div className="md:col-span-5 flex flex-col items-center">
-                <label className="block text-[10px] font-black text-slate-500 uppercase mb-4 tracking-widest">Photo {formData.category === PatientCategory.ATTENDANT && '(Mandatory)'}</label>
-                <div className="w-full max-w-[320px] aspect-square bg-[#0b1121] rounded-[2.5rem] border-2 border-dashed border-slate-800/60 flex items-center justify-center overflow-hidden relative group cursor-pointer shadow-inner transition-colors hover:border-blue-500/40">
-                  {formData.photo ? (
-                    <img src={formData.photo} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center p-6 opacity-30 group-hover:opacity-60 transition-opacity">
-                      <span className="text-6xl block mb-4">📸</span>
-                      <p className="text-[10px] font-black uppercase tracking-widest max-w-[140px] mx-auto">Click to Capture Profile Photo</p>
                     </div>
                   )}
-                  <input type="file" accept="image/*" required={formData.category === PatientCategory.ATTENDANT} onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer" />
                 </div>
-              </div>
+              </section>
             </div>
-          </section>
 
-          {/* Section: Contact & Financials (for patients) */}
-          {(formData.category === PatientCategory.OPD || formData.category === PatientCategory.IPD || formData.category === PatientCategory.EMERGENCY) && (
-            <section className="animate-in slide-in-from-top-4">
-              <h4 className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-4"><span className="w-1.5 h-6 bg-emerald-500 rounded-full"></span> 03 Contact & Financials</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Alternative Mobile Number</label>
-                  <input 
-                    type="tel" 
-                    placeholder="+91 XXXXX XXXXX" 
-                    value={formData.emergencyContact}
-                    onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
-                    className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none text-lg" 
-                  />
+            {/* Right Column: Photo & Notes */}
+            <div className="space-y-8">
+              <section className="flex flex-col items-center">
+                <label className={`block text-[8px] font-black uppercase mb-4 tracking-widest opacity-60 ${s.sub}`}>Biometric Photo</label>
+                <div className={`w-full max-w-[240px] aspect-square rounded-[2rem] border-2 border-dashed flex items-center justify-center overflow-hidden relative group transition-all shadow-inner ${theme === 'light' ? 'border-[#D2D2D7] bg-[#F5F5F7]' : 'border-[#444] bg-[#2D2D2D]'}`}>
+                  {cameraError ? (
+                    <div className="flex flex-col items-center justify-center p-4 text-center">
+                      <span className="text-2xl mb-2">⚠️</span>
+                      <p className="text-[8px] font-black uppercase text-red-500 mb-4">{cameraError}</p>
+                      <button 
+                        type="button"
+                        onClick={startCamera}
+                        className="px-6 py-2 bg-black dark:bg-white text-white dark:text-black font-black text-[9px] uppercase tracking-widest rounded-full shadow-lg active:scale-95"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  ) : isCameraActive ? (
+                    <div className="relative w-full h-full">
+                      <video 
+                        ref={videoRef} 
+                        autoPlay 
+                        playsInline 
+                        muted
+                        className={`w-full h-full object-cover ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`} 
+                      />
+                      <div className="absolute inset-0 border-[3px] border-emerald-500/30 rounded-[2rem] pointer-events-none">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] border border-white/20 rounded-full border-dashed"></div>
+                      </div>
+                      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+                        {hasMultipleCameras && (
+                          <button 
+                            type="button"
+                            onClick={toggleCamera}
+                            className="w-8 h-8 flex items-center justify-center bg-black/50 text-white rounded-full active:scale-95 backdrop-blur-md"
+                            title="Switch Camera"
+                          >
+                            <span className="text-sm">🔄</span>
+                          </button>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={capturePhoto}
+                          className="px-6 py-2 bg-emerald-500 text-white font-black text-[9px] uppercase tracking-widest rounded-full shadow-lg active:scale-95"
+                        >
+                          Snap Biometric
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={stopCamera}
+                          className="w-8 h-8 flex items-center justify-center bg-black/50 text-white rounded-full active:scale-95 backdrop-blur-md"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  ) : formData.photo ? (
+                    <div className="relative w-full h-full group">
+                      <img src={formData.photo} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button 
+                          type="button"
+                          onClick={startCamera}
+                          className="px-4 py-2 bg-white text-black font-black text-[8px] uppercase tracking-widest rounded-full shadow-lg active:scale-95"
+                        >
+                          Retake
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setFormData({ ...formData, photo: '' })}
+                          className="px-4 py-2 bg-red-500 text-white font-black text-[8px] uppercase tracking-widest rounded-full shadow-lg active:scale-95"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button 
+                      type="button"
+                      onClick={startCamera}
+                      className="w-full h-full flex flex-col items-center justify-center text-center group"
+                    >
+                      <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-all">
+                        <span className="text-3xl">📸</span>
+                      </div>
+                      <p className="text-[8px] font-black uppercase tracking-widest opacity-40">Activate Biometric</p>
+                      <p className="text-[6px] font-bold uppercase tracking-[0.2em] mt-2 opacity-30">Camera Only On Click</p>
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Insurance / Scheme</label>
-                  <select 
-                    value={formData.insuranceType}
-                    onChange={(e) => setFormData({ ...formData, insuranceType: e.target.value })}
-                    className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none text-lg appearance-none"
-                  >
-                    <option>Cash/Self-Pay</option>
-                    <option>Corporate Insurance</option>
-                    <option>Govt Scheme (Ayushman Bharat)</option>
-                    <option>TPA / CGHS</option>
-                  </select>
-                </div>
-              </div>
-            </section>
-          )}
+              </section>
 
-          {/* Section: Secondary Contact (for Attendants) */}
-          {formData.category === PatientCategory.ATTENDANT && (
-            <section className="animate-in slide-in-from-top-4">
-              <h4 className="text-[11px] font-black text-pink-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-4"><span className="w-1.5 h-6 bg-pink-500 rounded-full"></span> 04 Emergency Contact (Secondary)</h4>
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Alternative Phone</label>
-                <input 
-                  type="tel" 
-                  placeholder="Secondary mobile number..." 
-                  value={formData.emergencyContact}
-                  onChange={(e) => setFormData({...formData, emergencyContact: e.target.value})}
-                  className="w-full bg-[#0b1121] border border-slate-800 rounded-2xl px-6 py-5 text-white font-bold outline-none text-lg" 
+              <section>
+                <label className={`block text-[8px] font-black uppercase mb-2 tracking-widest opacity-60 ${s.sub}`}>Admin Notes</label>
+                <textarea 
+                  placeholder="Reason for entry..."
+                  value={formData.medicalHistory} 
+                  onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })} 
+                  rows={3}
+                  className={`w-full rounded-xl px-4 py-3 font-bold outline-none border-2 text-xs resize-none ${s.input}`} 
                 />
-              </div>
-            </section>
-          )}
+              </section>
+            </div>
+          </div>
 
-          <div className="pt-8">
+          <div className="pt-4">
             <button 
               type="submit" 
               disabled={isSubmitting} 
-              className="w-full py-7 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-black rounded-3xl shadow-[0_20px_50px_rgba(59,130,246,0.25)] transition-all uppercase tracking-[0.4em] disabled:opacity-50 text-base"
+              className={`w-full py-4 sm:py-6 rounded-2xl sm:rounded-3xl font-black transition-all uppercase tracking-[0.3em] disabled:opacity-50 text-[10px] sm:text-xs shadow-xl active:scale-95 ${theme === 'light' ? 'bg-[#0071e3] text-white' : 'bg-[#0A84FF] text-white'}`}
             >
-              {isSubmitting ? 'Syncing...' : 
-               formData.category === PatientCategory.VISITOR ? 'Issue Temporary Pass' :
-               formData.category === PatientCategory.ATTENDANT ? 'Activate Attendant ID' :
-               'Register Patient'}
+              {isSubmitting ? 'SYNCING...' : 'FINALIZE REGISTRATION'}
             </button>
           </div>
         </form>
       </div>
-      <div className="text-center mt-12 text-[10px] font-black text-slate-700 tracking-[0.5em] uppercase">© 2024 Hospital Patient Flow Solutions • System Active</div>
+
+      {/* Processed Registry (Form View) */}
+      <div className="w-full max-w-5xl mx-auto px-4 mt-12 pb-10 border-t border-white/5 pt-8">
+        <h3 className={`text-sm font-black uppercase tracking-widest mb-6 ${s.sub}`}>Processed Registry (Gate Entry)</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-70 hover:opacity-100 transition-opacity">
+          {patients.filter(p => p.status === PatientStatus.RECEPTION_WAITING)
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            .slice(0, 8)
+            .map((p) => (
+              <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
+                 <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
+                 <div className="min-w-0">
+                    <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
+                    <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>{p.category} • {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                 </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
     </div>
   );
 };
 
 export default StaffGate;
+

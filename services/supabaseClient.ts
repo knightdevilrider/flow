@@ -2,9 +2,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Your Supabase project URL
-const supabaseUrl = 'https://hecjqxuweqrknwugvcox.supabase.co';
+const supabaseUrl = 'https://tjikwxxvtkndjdhnvaoo.supabase.co';
 
-// Explicitly using the Supabase publishable key provided by the user
+// Explicitly using the Supabase publishable key - user will need to provide this if it changes
 const supabaseAnonKey = 'sb_publishable_0Oxo-VOIMsZVM23-6UAppQ_Ygo2PBbG';
 
 if (!supabaseAnonKey) {

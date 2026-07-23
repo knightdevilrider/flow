@@ -1,14 +1,53 @@
 
 import React, { useState } from 'react';
-import { Patient, PatientStatus, PatientCategory } from '../types';
+import { Patient, PatientStatus, PatientCategory, Theme } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
 
 interface StaffVisitorMgmtProps {
   patients: Patient[];
+  theme: Theme;
+  isAdmin?: boolean;
+  onEditPatient?: (p: Patient) => void;
+  onDeletePatient?: (p: Patient) => void;
 }
 
-const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients }) => {
+const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients, theme, isAdmin, onEditPatient, onDeletePatient }) => {
   const [selectedVisitor, setSelectedVisitor] = useState<Patient | null>(null);
+
+  const themeStyles = {
+    light: {
+      card: 'bg-white border-[#D2D2D7] shadow-sm',
+      btn: 'bg-[#F5F5F7] hover:bg-[#E8E8ED] border-[#D2D2D7] text-[#1D1D1F]',
+      accent: 'text-[#0071e3]',
+      sub: 'text-[#86868b]',
+      header: 'text-[#1D1D1F]',
+      input: 'bg-white border-[#D2D2D7] text-[#1D1D1F]',
+      badge: 'bg-[#0071e3]/10 text-[#0071e3] border-[#0071e3]/20',
+      success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+    },
+    dark: {
+      card: 'bg-[#1D1D1F] border-[#333] shadow-2xl',
+      btn: 'bg-[#2D2D2D] hover:bg-[#3D3D3D] border-[#444] text-white',
+      accent: 'text-[#0A84FF]',
+      sub: 'text-[#86868b]',
+      header: 'text-white',
+      input: 'bg-[#2D2D2D] border-[#444] text-white',
+      badge: 'bg-[#0A84FF]/10 text-[#0A84FF] border-[#0A84FF]/20',
+      success: 'bg-emerald-900/10 text-emerald-400 border-emerald-900/20',
+    },
+    titanium: {
+      card: 'bg-[#4D4D4D] border-[#5D5D5D] shadow-2xl',
+      btn: 'bg-[#5D5D5D] hover:bg-[#6D6D6D] border-[#7D7D7D] text-[#E8E8ED]',
+      accent: 'text-[#0A84FF]',
+      sub: 'text-[#A1A1A6]',
+      header: 'text-[#E8E8ED]',
+      input: 'bg-[#5D5D5D] border-[#7D7D7D] text-[#E8E8ED]',
+      badge: 'bg-[#0A84FF]/10 text-[#0A84FF] border-[#0A84FF]/20',
+      success: 'bg-emerald-900/10 text-emerald-400 border-emerald-900/20',
+    }
+  };
+
+  const s = themeStyles[theme];
 
   const activeVisitors = patients.filter(p => 
     p.category === PatientCategory.VISITOR && 
@@ -27,81 +66,81 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients }) => {
   const handleScanTurnstile = (pId: string) => {
     const activeBesidePatient = activeVisitors.filter(v => v.targetPatientId === pId);
     if (activeBesidePatient.length >= 1) {
-      alert('🔴 ACCESS DENIED: 1-In / 1-Out Protocol Violation. Relative A is still inside.');
+      alert('🔴 PROTOCOL VIO: 1-In / 1-Out policy active.');
     } else {
-      alert('🟢 ACCESS GRANTED: Ward Entry Authorized.');
+      alert('🟢 ACCESS GRANTED');
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-white tracking-tight uppercase">Visitor Control & Turnstiles</h2>
-          <p className="text-slate-500 text-xs font-bold tracking-widest mt-1">1-In / 1-Out Protocol Enforced • Active: {activeVisitors.length}</p>
-        </div>
-        <div className="flex gap-4">
-          <div className="glass px-6 py-4 rounded-2xl border border-red-500/20 text-center animate-pulse">
-            <span className="block text-2xl font-black text-red-400">TURNSTILE LIVE</span>
-            <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Glass Door Sensors</span>
+    <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className={`p-8 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border shadow-2xl relative overflow-hidden ${s.card}`}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-12">
+          <div>
+            <h3 className={`text-xl sm:text-3xl font-black uppercase tracking-tight ${s.header}`}>PERIMETER GATE SIMULATION</h3>
+            <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] opacity-40 mt-2 ${s.sub}`}>Direct Hardware level turnstile logic</p>
+          </div>
+          <div className="flex items-center gap-4 bg-emerald-500/10 px-6 py-3 rounded-full border-2 border-emerald-500/20">
+            <span className="w-4 h-4 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"></span>
+            <span className={`text-[10px] font-black uppercase tracking-widest text-emerald-500`}>Turnstiles Online</span>
           </div>
         </div>
-      </div>
 
-      <div className="mb-10 p-8 glass rounded-[2.5rem] border border-blue-500/10">
-        <h3 className="text-sm font-black text-blue-400 uppercase tracking-widest mb-6">Simulation: Scan Relative QR at Door</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
           {patients.filter(p => [PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED].includes(p.status)).map(p => (
             <button 
               key={p.id}
               onClick={() => handleScanTurnstile(p.id)}
-              className="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 hover:border-blue-500/50 transition-all text-left"
+              className={`p-6 rounded-[2rem] border-2 transition-all text-center group active:scale-95 shadow-md hover:shadow-xl ${s.btn}`}
             >
-              <p className="text-[8px] font-black text-slate-500 uppercase mb-1">Patient: {p.name}</p>
-              <p className="text-xs font-bold text-slate-300">Scan Relative QR</p>
+              <p className={`text-[10px] font-black uppercase opacity-40 mb-2 truncate group-hover:opacity-100 transition-opacity ${s.sub}`}>{p.name}</p>
+              <p className={`text-xs font-black tracking-tight leading-tight ${s.header}`}>SCAN VISITOR<br/>QR PASS</p>
             </button>
           ))}
+          {patients.filter(p => [PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED].includes(p.status)).length === 0 && (
+            <div className="col-span-full py-16 text-center space-y-4 opacity-20">
+              <div className="text-6xl">🚧</div>
+              <p className={`text-[10px] font-black uppercase tracking-widest ${s.sub}`}>No clinical subjects available for simulation</p>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-4 max-h-[70vh] overflow-y-auto pr-2 scrollbar-hide">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-12">
+        <div className="lg:col-span-2 space-y-6 pr-4">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <h3 className={`text-xl sm:text-2xl font-black uppercase tracking-tight ${s.header}`}>ACTIVE VISITS ({activeVisitors.length})</h3>
+            <span className={`text-[10px] font-black uppercase tracking-widest opacity-40 ${s.sub}`}>Authority log</span>
+          </div>
+          
           {activeVisitors.map((visitor) => {
             const target = getTargetPatient(visitor.targetPatientId);
             return (
               <div 
                 key={visitor.id}
                 onClick={() => setSelectedVisitor(visitor)}
-                className={`glass p-6 rounded-[2rem] border transition-all cursor-pointer group flex items-center justify-between ${selectedVisitor?.id === visitor.id ? 'border-indigo-500 shadow-xl shadow-indigo-500/10' : 'border-slate-800 hover:border-slate-700'}`}
+                className={`p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border-2 transition-all cursor-pointer group flex flex-col sm:flex-row items-center justify-between gap-8 shadow-lg hover:shadow-2xl ${s.card} ${selectedVisitor?.id === visitor.id ? 'ring-4 ring-[#0A84FF] scale-[1.02]' : 'hover:scale-[1.01] active:scale-95'}`}
               >
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 shadow-lg">
+                <div className="flex items-center gap-8 w-full sm:w-auto">
+                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border-4 shadow-xl transition-transform group-hover:rotate-3 ${s.btn}`}>
                     {visitor.photo ? (
                       <img src={visitor.photo} alt={visitor.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-700 text-2xl">👤</div>
+                      <div className={`w-full h-full flex items-center justify-center text-4xl ${s.sub}`}>👤</div>
                     )}
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors">{visitor.name}</h3>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Meeting:</span>
-                      <span className="text-xs font-bold text-indigo-300">{target?.name || 'Unknown'} (ID: {visitor.targetPatientId?.slice(0,6)})</span>
-                    </div>
-                    <div className="mt-2 flex gap-2">
-                      <span className="px-2 py-0.5 bg-slate-950 border border-slate-800 rounded-md text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        {visitor.relationship || 'Relative'}
-                      </span>
-                      <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                        In Ward
-                      </span>
+                    <h3 className={`text-xl sm:text-3xl font-black tracking-tight group-hover:${s.accent} transition-colors leading-none ${s.header}`}>{visitor.name}</h3>
+                    <div className="flex flex-wrap items-center gap-3 mt-4">
+                      <span className={`text-[10px] font-black uppercase tracking-widest opacity-40 ${s.sub}`}>Visiting Authority:</span>
+                      <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-tight shadow-md border-2 ${s.badge}`}>{target?.name || 'Inmate Unknown'}</span>
                     </div>
                   </div>
                 </div>
-                <div className="text-right hidden sm:block">
-                  <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Pass Expiry</div>
-                  <div className="text-sm font-black text-slate-300">
-                    {visitor.expiryTimestamp ? new Date(visitor.expiryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '1 hr remain'}
+                <div className="text-center sm:text-right w-full sm:w-auto bg-[#F5F5F7] dark:bg-[#2D2D2D] p-5 sm:p-0 sm:bg-transparent rounded-[2rem]">
+                  <div className={`text-[10px] font-black uppercase tracking-widest mb-2 opacity-40 ${s.sub}`}>SESSION EXPIRY</div>
+                  <div className={`text-lg sm:text-2xl font-black tracking-tighter ${s.header}`}>
+                    {visitor.expiryTimestamp ? new Date(visitor.expiryTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '59:59 REMAINING'}
                   </div>
                 </div>
               </div>
@@ -109,64 +148,63 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients }) => {
           })}
 
           {activeVisitors.length === 0 && (
-            <div className="text-center py-24 glass rounded-[3rem] border border-slate-800">
-              <span className="text-4xl opacity-20">📇</span>
-              <p className="text-slate-600 font-bold uppercase tracking-widest mt-4">No active visitors found</p>
+            <div className={`text-center py-36 rounded-[3rem] border-4 border-dashed border-opacity-10 space-y-8 ${s.card}`}>
+              <div className="text-9xl opacity-10 grayscale animate-pulse">📇</div>
+              <p className={`font-black uppercase tracking-[0.4em] text-[10px] opacity-40 ${s.sub}`}>NO ACTIVE VISITOR SESSIONS Authority</p>
             </div>
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {selectedVisitor ? (
-            <div className="glass p-8 rounded-[2.5rem] border border-indigo-500/30 sticky top-24 animate-in fade-in slide-in-from-right-4 shadow-2xl">
-              <div className="flex justify-between items-start mb-8">
-                <h3 className="text-xl font-black text-white tracking-tight">Active Session</h3>
-                <button onClick={() => setSelectedVisitor(null)} className="text-slate-500 hover:text-white transition-colors">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <div className={`p-10 sm:p-12 rounded-[3.5rem] border shadow-2xl animate-in fade-in slide-in-from-right-10 ${s.card}`}>
+              <div className="flex justify-between items-start mb-10">
+                <h3 className={`text-2xl font-black tracking-tighter uppercase ${s.header}`}>SESSION OVERVIEW</h3>
+                <button onClick={() => setSelectedVisitor(null)} className={`w-10 h-10 rounded-full flex items-center justify-center transition-all hover:bg-black/5 dark:hover:bg-white/5 ${s.sub}`}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
 
-              <div className="w-full aspect-square rounded-[2rem] overflow-hidden border border-slate-700 mb-6 bg-slate-900 shadow-2xl relative">
+              <div className={`w-full aspect-square rounded-[3rem] sm:rounded-[4rem] overflow-hidden border-8 mb-10 relative shadow-2xl transition-transform hover:scale-[1.05] ${s.btn}`}>
                 {selectedVisitor.photo ? (
                   <img src={selectedVisitor.photo} alt={selectedVisitor.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-800 text-6xl">👤</div>
+                  <div className={`w-full h-full flex items-center justify-center text-[10rem] ${s.sub}`}>👤</div>
                 )}
-                <div className="absolute top-4 right-4 px-3 py-1 bg-indigo-500 text-slate-950 text-[10px] font-black rounded-full shadow-lg">
-                  VERIFIED
+                <div className="absolute top-8 right-8 px-6 py-2 bg-[#0A84FF] text-white text-[10px] font-black rounded-full shadow-2xl shadow-[#0A84FF]/50 uppercase tracking-[0.3em]">
+                  BIOMETRIC VERIFIED
                 </div>
               </div>
 
-              <div className="space-y-3 mb-10">
-                <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
-                  <span className="block text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-1">Visitor Details</span>
-                  <span className="text-sm font-bold text-slate-300">{selectedVisitor.idType}: {selectedVisitor.idNumber}</span>
+              <div className="grid grid-cols-1 gap-4 mb-12">
+                <div className={`p-6 rounded-[2rem] border-2 shadow-inner group transition-all ${s.btn}`}>
+                  <span className={`block text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-40 ${s.sub}`}>Government Credential</span>
+                  <span className={`text-base sm:text-lg font-black tracking-tight ${s.header}`}>{selectedVisitor.idType}: {selectedVisitor.idNumber}</span>
                 </div>
-                <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
-                  <span className="block text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-1">Patient Being Visited</span>
-                  <span className="text-sm font-bold text-indigo-400">{getTargetPatient(selectedVisitor.targetPatientId)?.name || 'Unknown'}</span>
-                </div>
-                <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800/60">
-                  <span className="block text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] mb-1">Meetup Protocol</span>
-                  <span className="text-xs font-bold text-slate-400 italic">One visitor per patient limit enforced.</span>
+                <div className={`p-6 rounded-[2rem] border-2 shadow-inner group transition-all ${s.btn}`}>
+                  <span className={`block text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-40 ${s.sub}`}>Clinical Inmate Contact</span>
+                  <span className={`text-base sm:text-lg font-black tracking-tight ${s.accent}`}>{getTargetPatient(selectedVisitor.targetPatientId)?.name}</span>
                 </div>
               </div>
 
               <button 
                 onClick={() => handleDeactivatePass(selectedVisitor.id)}
-                className="w-full py-5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-500/20 font-black rounded-2xl transition-all uppercase tracking-[0.2em] text-xs shadow-lg active:scale-95"
+                className={`w-full py-6 sm:py-8 rounded-[2rem] sm:rounded-[2.5rem] font-black transition-all uppercase tracking-[0.4em] text-xs sm:text-sm shadow-2xl active:scale-95 ${theme === 'light' ? 'bg-red-500 text-white hover:bg-red-600 shadow-red-500/30' : 'bg-red-600 text-white hover:bg-red-500 shadow-red-600/30'}`}
               >
-                End Visit & Clear Room
+                END VISIT & EVACUATE
               </button>
             </div>
           ) : (
-            <div className="glass p-10 rounded-[2.5rem] border border-slate-800 h-96 flex flex-col items-center justify-center text-center opacity-40">
-              <div className="w-20 h-20 bg-slate-900 rounded-full flex items-center justify-center mb-6">
-                <span className="text-4xl">👥</span>
+            <div className={`p-16 rounded-[4rem] border-4 border-dashed border-opacity-10 h-[32rem] flex flex-col items-center justify-center text-center space-y-10 ${s.card}`}>
+              <div className={`w-28 h-28 rounded-[2.5rem] flex items-center justify-center shadow-2xl animate-pulse ${s.btn}`}>
+                <span className="text-6xl grayscale">👥</span>
               </div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed">
-                Select a visitor entry to view detailed profile and meeting history.
-              </p>
+              <div className="space-y-4 max-w-[15rem]">
+                <h4 className={`text-[12px] font-black uppercase tracking-widest leading-relaxed ${s.sub}`}>Awaiting Session Selection</h4>
+                <p className={`text-[10px] font-black uppercase tracking-widest leading-relaxed opacity-20 ${s.sub}`}>
+                  Select a live visitor log entry to view high-priority session telemetry.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -176,3 +214,4 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients }) => {
 };
 
 export default StaffVisitorMgmt;
+

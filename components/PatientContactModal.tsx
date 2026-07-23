@@ -6,9 +6,12 @@ import { STATUS_LABELS } from '../constants';
 interface PatientContactModalProps {
   patient: Patient | null;
   onClose: () => void;
+  isAdmin?: boolean;
+  onEdit?: (patient: Patient) => void;
+  onDelete?: (patient: Patient) => void;
 }
 
-const PatientContactModal: React.FC<PatientContactModalProps> = ({ patient, onClose }) => {
+const PatientContactModal: React.FC<PatientContactModalProps> = ({ patient, onClose, isAdmin, onEdit, onDelete }) => {
   if (!patient) return null;
 
   const formatDate = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -112,7 +115,23 @@ const PatientContactModal: React.FC<PatientContactModalProps> = ({ patient, onCl
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-slate-800/50 text-center">
+          <div className="mt-8 pt-8 border-t border-slate-800/50 flex flex-col gap-4">
+             {isAdmin && (
+               <div className="flex gap-4">
+                 <button 
+                   onClick={() => onEdit?.(patient)}
+                   className="flex-1 py-4 rounded-2xl bg-blue-600/10 text-blue-400 border border-blue-500/20 font-black uppercase tracking-widest text-[10px] hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                 >
+                   Edit Master Record
+                 </button>
+                 <button 
+                   onClick={() => onDelete?.(patient)}
+                   className="flex-1 py-4 rounded-2xl bg-red-600/10 text-red-400 border border-red-500/20 font-black uppercase tracking-widest text-[10px] hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                 >
+                   Archive Record
+                 </button>
+               </div>
+             )}
              <p className="text-[9px] font-black text-slate-700 uppercase tracking-[0.6em]">System Audit • Real-Time Log Verified</p>
           </div>
         </div>

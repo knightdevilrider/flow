@@ -1,8 +1,8 @@
 {
-  "name": "Hospital Patient Flow Pro",
-  "description": "A comprehensive real-time patient journey management system featuring staff dashboards and public displays for streamlined hospital operations.",
-  "requestFramePermissions": [
-    "camera"
-  ],
-  "majorCapabilities": []
+  "name": "Audit Intelligence Pro",
+  "description": "Enterprise-grade real-time patient journey auditor and clinical compliance monitor. Features automated SLA breach tracking, NABH compliance matrix, and automated export of completed audits to Google Sheets and Drive.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

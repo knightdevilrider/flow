@@ -154,6 +154,11 @@ export interface Patient {
   allergies?: string;
   chronicConditions?: string;
   currentMedications?: string;
+  temperature?: string;
+  bloodPressure?: string;
+  pulse?: string;
+  weight?: string;
+  spo2?: string;
   
   // Safety & Compliance (Admin requested)
   isDeleted?: boolean;

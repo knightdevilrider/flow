@@ -49,7 +49,12 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
     medicalHistory: '',
     targetPatientId: '',
     relationship: '',
-    emergencyContact: ''
+    emergencyContact: '',
+    temperature: '',
+    bloodPressure: '',
+    pulse: '',
+    weight: '',
+    spo2: ''
   });
 
   const themeStyles = {
@@ -306,6 +311,11 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         insuranceType: formData.insuranceType,
         isForeigner: formData.isForeigner,
         medicalHistory: formData.medicalHistory,
+        temperature: formData.temperature,
+        bloodPressure: formData.bloodPressure,
+        pulse: formData.pulse,
+        weight: formData.weight,
+        spo2: formData.spo2,
         targetPatientId: formData.targetPatientId,
         relationship: formData.relationship,
         emergencyContact: formData.emergencyContact,
@@ -340,7 +350,12 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
           medicalHistory: '',
           targetPatientId: '',
           relationship: '',
-          emergencyContact: ''
+          emergencyContact: '',
+          temperature: '',
+          bloodPressure: '',
+          pulse: '',
+          weight: '',
+          spo2: ''
         });
       }, 1500);
     } catch (err: any) {
@@ -682,6 +697,35 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
                       </select>
                     </div>
                   )}
+                </div>
+              </section>
+              {/* Section: Clinical Vitals */}
+              <section>
+                <h4 className={`text-[8px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-3 ${s.accent}`}>
+                  <span className={`w-1 h-6 rounded-full ${theme === 'light' ? 'bg-[#0071e3]' : 'bg-[#0A84FF]'}`}></span> 
+                  CLINICAL VITALS
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Temperature (°F)</label>
+                    <input type="text" placeholder="98.6" value={formData.temperature} onChange={(e) => setFormData({...formData, temperature: e.target.value})} className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Blood Pressure</label>
+                    <input type="text" placeholder="120/80" value={formData.bloodPressure} onChange={(e) => setFormData({...formData, bloodPressure: e.target.value})} className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Pulse (bpm)</label>
+                    <input type="text" placeholder="72" value={formData.pulse} onChange={(e) => setFormData({...formData, pulse: e.target.value})} className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Weight (kg)</label>
+                    <input type="text" placeholder="65" value={formData.weight} onChange={(e) => setFormData({...formData, weight: e.target.value})} className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>SpO2 (%)</label>
+                    <input type="text" placeholder="98" value={formData.spo2} onChange={(e) => setFormData({...formData, spo2: e.target.value})} className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} />
+                  </div>
                 </div>
               </section>
             </div>

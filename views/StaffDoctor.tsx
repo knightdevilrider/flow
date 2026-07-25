@@ -183,7 +183,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
           <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-[#0071e3]/10 flex items-center justify-center mx-auto mb-8 shadow-inner">
             <span className="text-4xl sm:text-6xl">🩺</span>
           </div>
-          <h2 className={`text-4xl sm:text-6xl font-black mb-4 uppercase tracking-tighter leading-none ${s.header}`}>Clinical Portal</h2>
+          <h2 className={`text-4xl sm:text-6xl font-black mb-4 uppercase tracking-tighter leading-none ${s.header}`}>Doctor Portal</h2>
           <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] opacity-40 ${s.sub}`}>Select authorized consultant profile</p>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:gap-6">

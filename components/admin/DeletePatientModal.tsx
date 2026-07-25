@@ -9,9 +9,10 @@ interface DeletePatientModalProps {
   onConfirm: (reason: string) => void;
   patient: Patient | null;
   theme: Theme;
+  isAdmin?: boolean;
 }
 
-const DeletePatientModal: React.FC<DeletePatientModalProps> = ({ isOpen, onClose, onConfirm, patient, theme }) => {
+const DeletePatientModal: React.FC<DeletePatientModalProps> = ({ isOpen, onClose, onConfirm, patient, theme, isAdmin }) => {
   const [reason, setReason] = useState('');
 
   if (!isOpen || !patient) return null;
@@ -49,9 +50,15 @@ const DeletePatientModal: React.FC<DeletePatientModalProps> = ({ isOpen, onClose
           <div className="w-20 h-20 rounded-3xl bg-red-500/10 flex items-center justify-center text-4xl mb-6 border border-red-500/20 shadow-inner">
             <ShieldAlert className="w-10 h-10 text-red-500" />
           </div>
-          <h2 className={`text-2xl font-black tracking-tight ${s.text}`}>Archive Patient Record?</h2>
+          <h2 className={`text-2xl font-black tracking-tight ${s.text}`}>
+            {isAdmin ? 'Archive Patient Record?' : 'Submit Deletion Request?'}
+          </h2>
           <p className={`text-sm font-medium mt-2 px-4 leading-relaxed ${s.sub}`}>
-            You are about to soft-delete <span className="text-red-500 font-bold">{patient.name}</span>. This action is audited and reversible by master administrators only.
+            {isAdmin ? (
+              <>You are about to soft-delete <span className="text-red-500 font-bold">{patient.name}</span>. This action is audited and reversible by master administrators only.</>
+            ) : (
+              <>You are requesting to delete <span className="text-red-500 font-bold">{patient.name}</span>. This request will be sent to the Admin for approval.</>
+            )}
           </p>
         </div>
 
@@ -84,7 +91,7 @@ const DeletePatientModal: React.FC<DeletePatientModalProps> = ({ isOpen, onClose
               className="flex-1 py-4 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl bg-red-600 text-white hover:bg-red-500 disabled:opacity-30 active:scale-95 flex items-center justify-center gap-2"
             >
               <Trash2 className="w-4 h-4" />
-              Confirm Archive
+              {isAdmin ? 'Archive' : 'Submit Request'}
             </button>
           </div>
         </div>

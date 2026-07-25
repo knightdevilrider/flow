@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Theme, Doctor, Ward, Section, DoctorRoster, Shift, SystemThresholds, AuditLog, Patient, BillingScheme, NABHKPI, UserRole, StaffMember } from '../types';
-import AuditIntelligence from '../components/AuditIntelligence';
+
 
 import { 
   collection, 
@@ -10,8 +10,15 @@ import {
   updateDoc 
 } from 'firebase/firestore';
 import { db } from '../src/lib/firebase';
+import { mockFirestore } from '../services/mockFirestore';
 import DoctorTable from '../components/admin/DoctorTable';
 import DoctorFormModal from '../components/admin/DoctorFormModal';
+import PatientTable from '../components/admin/PatientTable';
+import HistoryLogTable from '../components/admin/HistoryLogTable';
+import GlobalTATMetrics from '../components/admin/GlobalTATMetrics';
+import PatientTimelineModal from '../components/admin/PatientTimelineModal';
+import PatientFormModal from '../components/admin/PatientFormModal';
+import DeletePatientModal from '../components/admin/DeletePatientModal';
 import { 
   Users, 
   Stethoscope, 
@@ -48,7 +55,7 @@ interface SettingsViewProps {
   staff: StaffMember[];
 }
 
-type Tab = 'STAFF' | 'FACILITY' | 'OPERATIONS' | 'COMPLIANCE' | 'SYSTEM' | 'HISTORY';
+type Tab = 'STAFF' | 'FACILITY' | 'OPERATIONS' | 'COMPLIANCE' | 'SYSTEM' | 'HISTORY' | 'PATIENTS';
 type StaffSubTab = 'doctors' | 'staff_list' | 'duty_list';
 
 const SettingsView: React.FC<SettingsViewProps> = ({ 
@@ -61,6 +68,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   // Modal States
   const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+
+  const [timelinePatient, setTimelinePatient] = useState<Patient | null>(null);
+  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
 
   // Form states
   const [newStaff, setNewStaff] = useState({ name: '', employeeId: '', role: UserRole.RECEPTION });
@@ -99,6 +112,61 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const s = themeStyles[theme];
+
+  const handlePatientClick = (patient: Patient) => {
+    setTimelinePatient(patient);
+  };
+
+  const handleSavePatient = async (patientData: Partial<Patient>) => {
+    try {
+      if (editingPatient) {
+        await mockFirestore.updatePatient(editingPatient.id, {
+          ...patientData,
+          lastModifiedAt: Date.now(),
+          lastModifiedBy: 'Admin'
+        });
+        onAddAuditLog('Update Patient', `Updated details for ${patientData.name}`);
+      } else {
+        await mockFirestore.addPatient({
+          ...patientData,
+          status: patientData.status || 'GATE_ENTRY',
+          timestamp: Date.now(),
+          isDeleted: false,
+          trackingLog: [{
+            stage: 'GATE_ENTRY',
+            timestamp: Date.now(),
+            staffName: 'Admin',
+            notes: 'Added via Admin Console'
+          }]
+        } as Omit<Patient, 'id'>);
+        onAddAuditLog('Add Patient', `Registered patient ${patientData.name}`);
+      }
+      setIsPatientModalOpen(false);
+      setEditingPatient(null);
+    } catch (err) {
+      console.error('Error saving patient:', err);
+      alert('Failed to save patient record.');
+    }
+  };
+
+  const handleSoftDelete = async (reason: string) => {
+    if (!patientToDelete) return;
+    try {
+      await mockFirestore.updatePatient(patientToDelete.id, {
+        isDeleted: true,
+        deletedAt: Date.now(),
+        deletedReason: reason,
+        lastModifiedBy: 'Admin',
+        deletionRequest: null
+      });
+      onAddAuditLog('Delete Patient', `Deleted patient ${patientToDelete.name} - Reason: ${reason}`);
+      setIsDeleteModalOpen(false);
+      setPatientToDelete(null);
+    } catch (err) {
+      console.error('Error deleting patient:', err);
+      alert('Failed to delete patient record.');
+    }
+  };
 
   const handleSaveDoctor = async (doctorData: Partial<Doctor>) => {
     try {
@@ -203,7 +271,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-10 space-y-8 pb-32">
+    <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-10 space-y-8 pb-32">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div className="flex flex-col gap-2">
           <h2 className={`text-3xl sm:text-4xl md:text-5xl font-black tracking-tight ${s.text}`}>Admin Console</h2>
@@ -214,6 +282,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         <div className={`p-1 sm:p-1.5 rounded-2xl flex flex-wrap gap-1 ${theme === 'light' ? 'bg-[#F5F5F7]' : 'bg-black/40'} border border-white/5 w-full lg:w-auto`}>
           {[
             { id: 'STAFF', label: 'Staff', icon: Users },
+            { id: 'PATIENTS', label: 'Patient List', icon: List },
             { id: 'FACILITY', label: 'Facility', icon: Building2 },
             { id: 'OPERATIONS', label: 'Ops', icon: Zap },
             { id: 'COMPLIANCE', label: 'Rules', icon: ShieldCheck },
@@ -233,6 +302,31 @@ const SettingsView: React.FC<SettingsViewProps> = ({
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {activeTab === 'PATIENTS' && (
+          <div className="space-y-6">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 w-full">
+              <h3 className={`text-xl font-black uppercase tracking-widest whitespace-nowrap ${s.text} shrink-0`}>Master Patient List</h3>
+              
+              <div className="flex-1 w-full overflow-x-auto apple-scroll pb-2 xl:pb-0">
+                <GlobalTATMetrics patients={patients} theme={theme} />
+              </div>
+
+              <button 
+                onClick={() => { setEditingPatient(null); setIsPatientModalOpen(true); }}
+                className="px-6 py-3 rounded-2xl bg-emerald-600 text-white font-black uppercase tracking-widest text-[10px] flex items-center gap-2 shadow-xl shadow-emerald-600/20 hover:scale-105 transition-transform shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Register Patient
+              </button>
+            </div>
+            <PatientTable 
+              patients={patients}
+              onPatientClick={handlePatientClick}
+              theme={theme}
+            />
+          </div>
+        )}
+
         {activeTab === 'STAFF' && (
           <div className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -693,8 +787,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </button>
               </div>
 
-              <div>
-                <AuditIntelligence patients={patients} theme={theme} />
+              <div className="mt-4">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <List className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <h4 className={`text-lg font-black uppercase tracking-widest ${s.text}`}>Archived & Completed Patients</h4>
+                </div>
+                <HistoryLogTable patients={patients} theme={theme} />
               </div>
             </div>
           </div>
@@ -708,6 +808,41 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         onSave={handleSaveDoctor} 
         initialData={editingDoctor} 
         theme={theme} 
+      />
+
+      {timelinePatient && (
+        <PatientTimelineModal
+          patient={timelinePatient}
+          theme={theme}
+          onClose={() => setTimelinePatient(null)}
+          onEdit={(p) => {
+            setTimelinePatient(null);
+            setEditingPatient(p);
+            setIsPatientModalOpen(true);
+          }}
+          onDelete={(p, reason) => {
+            setTimelinePatient(null);
+            setPatientToDelete(p);
+            handleSoftDelete(reason);
+          }}
+        />
+      )}
+
+      <PatientFormModal
+        isOpen={isPatientModalOpen}
+        onClose={() => { setIsPatientModalOpen(false); setEditingPatient(null); }}
+        onSave={handleSavePatient}
+        initialData={editingPatient}
+        theme={theme}
+        doctors={doctors}
+      />
+
+      <DeletePatientModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => { setIsDeleteModalOpen(false); setPatientToDelete(null); }}
+        onConfirm={handleSoftDelete}
+        patient={patientToDelete}
+        theme={theme}
       />
     </div>
   );

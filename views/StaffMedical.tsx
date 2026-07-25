@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Patient, PatientStatus, Theme } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
+import { TREATMENT_TYPES } from '../constants';
 import PatientContactModal from '../components/PatientContactModal';
 
 interface StaffMedicalProps {
@@ -17,9 +18,11 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, o
   const [isArchiving, setIsArchiving] = useState(false);
   const [prescribedCount, setPrescribedCount] = useState(0);
   const [dispensedCount, setDispensedCount] = useState(0);
-  const [isSubstitution, setIsSubstitution] = useState(false);
   const [isStockOut, setIsStockOut] = useState(false);
+  const [isSubstitution, setIsSubstitution] = useState(false);
+  const [treatmentResults, setTreatmentResults] = useState('');
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
+  const [selectedStation, setSelectedStation] = useState<string>('All');
 
   const themeStyles = {
     light: {
@@ -56,17 +59,45 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, o
 
   const s = themeStyles[theme];
 
-  const currentPatient = patients.find(p => [PatientStatus.TREATMENT, PatientStatus.MEDICINE_WAITING].includes(p.status));
-  const queue = patients.filter(p => [PatientStatus.CONSULTATION_DONE, PatientStatus.TREATMENT].includes(p.status) && !p.isAbsent);
-  const absentList = patients.filter(p => p.status === PatientStatus.CONSULTATION_DONE && p.isAbsent);
+  const allowedStatusesForStation = () => {
+    if (selectedStation === 'Pharmacy') return [PatientStatus.CONSULTATION_DONE, PatientStatus.MEDICINE_WAITING];
+    if (selectedStation !== 'All') return [PatientStatus.TREATMENT];
+    return [PatientStatus.CONSULTATION_DONE, PatientStatus.TREATMENT, PatientStatus.MEDICINE_WAITING];
+  };
+
+  const currentPatient = patients.find(p => {
+    if (!allowedStatusesForStation().includes(p.status)) return false;
+    if (selectedStation === 'All') return [PatientStatus.TREATMENT, PatientStatus.MEDICINE_WAITING].includes(p.status);
+    if (selectedStation === 'Pharmacy') return p.status === PatientStatus.MEDICINE_WAITING;
+    return p.status === PatientStatus.TREATMENT && p.assignedTreatmentType === selectedStation;
+  });
+  
+  const queue = patients.filter(p => {
+    if (p.isAbsent) return false;
+    if (selectedStation === 'All') return [PatientStatus.CONSULTATION_DONE, PatientStatus.TREATMENT].includes(p.status);
+    if (selectedStation === 'Pharmacy') return p.status === PatientStatus.CONSULTATION_DONE;
+    return p.status === PatientStatus.TREATMENT && p.assignedTreatmentType === selectedStation;
+  });
+  
+  const absentList = patients.filter(p => {
+    if (!p.isAbsent) return false;
+    if (selectedStation === 'All') return [PatientStatus.CONSULTATION_DONE, PatientStatus.TREATMENT].includes(p.status);
+    if (selectedStation === 'Pharmacy') return p.status === PatientStatus.CONSULTATION_DONE;
+    return p.status === PatientStatus.TREATMENT && p.assignedTreatmentType === selectedStation;
+  });
   
   const isLabMode = currentPatient?.status === PatientStatus.TREATMENT;
 
   const handleCallNext = async () => {
-    // Priority 1: Call for Pharmacy if any
-    let next = mockFirestore.getNextInQueue(patients, PatientStatus.CONSULTATION_DONE);
-    // Priority 2: Call for Lab if any
-    if (!next) next = patients.find(p => p.status === PatientStatus.TREATMENT && !p.isAbsent);
+    let next: Patient | undefined;
+    
+    if (selectedStation === 'Pharmacy' || selectedStation === 'All') {
+      next = mockFirestore.getNextInQueue(patients, PatientStatus.CONSULTATION_DONE);
+    }
+    
+    if (!next && selectedStation !== 'Pharmacy') {
+      next = patients.find(p => p.status === PatientStatus.TREATMENT && !p.isAbsent && (selectedStation === 'All' || p.assignedTreatmentType === selectedStation));
+    }
 
     if (next) {
       const targetStatus = next.status === PatientStatus.TREATMENT ? PatientStatus.TREATMENT : PatientStatus.MEDICINE_WAITING;
@@ -86,6 +117,8 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, o
     if (isLabMode) {
       await mockFirestore.updatePatientAudited(currentPatient.id, {
         status: PatientStatus.DOCTOR_RECONSULT,
+        treatmentResults,
+        isPriorityReconsult: true,
         // Mocking some lab metrics for the audit trail
         history: [
           ...currentPatient.history,
@@ -113,10 +146,45 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, o
     
     setTimeout(() => {
       setIsArchiving(false);
-      setMessage(isLabMode ? 'Lab Results Sent' : 'Completed & Synced');
+      setMessage(isLabMode ? 'Treatment Results Sent' : 'Completed & Synced');
+      setTreatmentResults('');
       setTimeout(handleCallNext, 1000);
     }, 2000);
   };
+
+  if (selectedStation === 'All' && !currentPatient && queue.length === 0) {
+    return (
+      <div className="max-w-xl mx-auto py-12 sm:py-24 px-6 sm:px-10">
+        <div className="text-center mb-12 sm:mb-20">
+          <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-[#0071e3]/10 flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <span className="text-4xl sm:text-6xl">🏥</span>
+          </div>
+          <h2 className={`text-4xl sm:text-6xl font-black mb-4 uppercase tracking-tighter leading-none ${s.header}`}>Medical Station</h2>
+          <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] opacity-40 ${s.sub}`}>Select your designated station</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          {TREATMENT_TYPES.map(t => (
+            <button
+              key={t}
+              onClick={() => setSelectedStation(t)}
+              className={`w-full py-6 sm:py-8 rounded-[2rem] border-2 transition-all flex flex-col items-center justify-center gap-2 group ${s.card} hover:scale-[1.03] active:scale-95 shadow-lg hover:shadow-xl`}
+            >
+              <div className={`text-3xl sm:text-4xl mb-2`}>🔬</div>
+              <div className={`text-sm sm:text-lg font-black text-cyan-600 transition-colors tracking-tight`}>{t}</div>
+            </button>
+          ))}
+          
+          <button
+            onClick={() => setSelectedStation('Pharmacy')}
+            className={`w-full py-6 sm:py-8 rounded-[2rem] border-2 transition-all flex flex-col items-center justify-center gap-2 group ${s.card} hover:scale-[1.03] active:scale-95 shadow-lg hover:shadow-xl`}
+          >
+            <div className={`text-3xl sm:text-4xl mb-2`}>💊</div>
+            <div className={`text-sm sm:text-lg font-black text-emerald-600 transition-colors tracking-tight`}>Pharmacy</div>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -157,11 +225,11 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, o
                 </div>
                 
                 <div className={`p-6 rounded-2xl border-2 shadow-inner group transition-all ${s.btn}`}>
-                  <h4 className={`text-[8px] font-black uppercase tracking-widest mb-2 opacity-40 ${s.sub}`}>Medical Directives</h4>
+                  <h4 className={`text-[8px] font-black uppercase tracking-widest mb-2 opacity-40 ${s.sub}`}>{isLabMode ? 'Doctor\'s Directive' : 'Doctor\'s Prescription'}</h4>
                   <p className={`text-lg sm:text-xl font-black tracking-tight leading-tight ${s.header}`}>"{currentPatient.directive || currentPatient.prescription}"</p>
                 </div>
 
-                {!isLabMode && (
+                {!isLabMode ? (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -197,6 +265,18 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, o
                       >
                         STOCK OUT {isStockOut ? 'YES' : 'NO'}
                       </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Treatment Results / Notes</label>
+                      <textarea 
+                        value={treatmentResults}
+                        onChange={(e) => setTreatmentResults(e.target.value)}
+                        placeholder="Enter results, findings, or metrics..."
+                        className={`w-full rounded-xl px-4 py-3 font-black text-sm border-2 outline-none transition-all resize-none h-24 ${s.input}`}
+                      />
                     </div>
                   </div>
                 )}
@@ -235,7 +315,19 @@ const StaffMedical: React.FC<StaffMedicalProps> = ({ patients, theme, isAdmin, o
         </section>
 
         <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
-          <h3 className={`text-xs font-black uppercase tracking-tight mb-4 ${s.header}`}>Supply Queue ({queue.length})</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className={`text-xs font-black uppercase tracking-tight ${s.header}`}>
+              Supply Queue ({queue.length})
+            </h3>
+            {selectedStation !== 'All' && (
+              <button 
+                onClick={() => setSelectedStation('All')} 
+                className={`text-[8px] font-black uppercase tracking-[0.2em] transition-all px-4 py-1.5 rounded-full border ${s.sub} hover:text-red-500 hover:border-red-500/30 active:scale-95`}
+              >
+                EXIT STATION
+              </button>
+            )}
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {queue.slice(0, 8).map((p, idx) => (
               <div 

@@ -44,6 +44,7 @@ import {
 } from 'firebase/firestore';
 import PatientTable from '../components/admin/PatientTable';
 import PatientFormModal from '../components/admin/PatientFormModal';
+import PatientTimelineModal from '../components/admin/PatientTimelineModal';
 import DeletePatientModal from '../components/admin/DeletePatientModal';
 
 interface AdminConsoleProps {
@@ -54,7 +55,7 @@ interface AdminConsoleProps {
   isAdmin: boolean;
 }
 
-type StaffSubTab = 'doctors' | 'staff_list' | 'duty_list' | 'patients';
+type StaffSubTab = 'doctors' | 'staff_list' | 'duty_list' | 'patients' | 'deletion_requests';
 
 const AdminConsole: React.FC<AdminConsoleProps> = ({ 
   theme, 
@@ -78,6 +79,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
   
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [timelinePatient, setTimelinePatient] = useState<Patient | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
 
@@ -169,7 +171,8 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
         isDeleted: true,
         deletedAt: Date.now(),
         deletedReason: reason,
-        lastModifiedBy: 'Admin'
+        lastModifiedBy: 'Admin',
+        deletionRequest: null // Clear any pending request
       });
       setIsDeleteModalOpen(false);
       setPatientToDelete(null);
@@ -185,9 +188,40 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
     }
   };
 
+  const handleApproveDeletion = async (p: Patient, adminReason: string) => {
+    try {
+      await mockFirestore.updatePatient(p.id, {
+        isDeleted: true,
+        deletedAt: Date.now(),
+        deletedReason: `[Staff: ${p.deletionRequest?.reason}] Admin Note: ${adminReason}`,
+        lastModifiedBy: 'Admin',
+        deletionRequest: null
+      });
+    } catch (err) {
+      console.error('Error approving deletion:', err);
+      alert('Failed to approve deletion.');
+    }
+  };
+
+  const handleRejectDeletion = async (p: Patient) => {
+    try {
+      await mockFirestore.updatePatient(p.id, {
+        deletionRequest: null,
+        lastModifiedBy: 'Admin'
+      });
+    } catch (err) {
+      console.error('Error rejecting deletion:', err);
+      alert('Failed to reject deletion request.');
+    }
+  };
+
   const handleEditDoctor = (doctor: Doctor) => {
     setEditingDoctor(doctor);
     setIsDoctorModalOpen(true);
+  };
+
+  const handlePatientClick = (patient: Patient) => {
+    setTimelinePatient(patient);
   };
 
   const handleEditPatient = (patient: Patient) => {
@@ -316,7 +350,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
         </div>
       )}
 
-      <div className={`space-y-12 max-w-7xl mx-auto ${!isAdmin ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+      <div className={`space-y-12 w-full px-4 sm:px-6 lg:px-8 xl:px-12 ${!isAdmin ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
         {/* Staff Management Main View */}
         {activeTab === 'staff' && (
           <div className="space-y-8">
@@ -326,7 +360,8 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
                   { id: 'doctors', label: 'Doctors', icon: Stethoscope },
                   { id: 'patients', label: 'Patient Registry', icon: List },
                   { id: 'staff_list', label: 'Staff List', icon: List },
-                  { id: 'duty_list', label: 'Duty List', icon: ClipboardList }
+                  { id: 'duty_list', label: 'Duty List', icon: ClipboardList },
+                  { id: 'deletion_requests', label: 'Deletion Requests', icon: ShieldAlert }
                 ].map(sub => (
                   <button
                     key={sub.id}
@@ -379,10 +414,8 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
               {staffSubTab === 'patients' && (
                 <PatientTable 
                   patients={patients}
-                  onEdit={handleEditPatient}
-                  onDelete={(p) => { setPatientToDelete(p); setIsDeleteModalOpen(true); }}
+                  onPatientClick={handlePatientClick}
                   theme={theme}
-                  isAdmin={isAdmin}
                 />
               )}
 
@@ -493,6 +526,45 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {staffSubTab === 'deletion_requests' && (
+                <div className={`rounded-[2.5rem] border ${s.card} overflow-hidden shadow-xl p-8`}>
+                  <h2 className={`text-xl font-black uppercase tracking-tight mb-6 ${s.text}`}>Pending Deletion Requests</h2>
+                  {patients.filter(p => p.deletionRequest).length === 0 ? (
+                    <p className={`text-sm ${s.sub} font-bold`}>No pending deletion requests.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {patients.filter(p => p.deletionRequest).map(p => (
+                        <div key={p.id} className="p-6 border border-white/10 rounded-2xl bg-white/5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                          <div>
+                            <h3 className={`text-lg font-black ${s.text}`}>{p.name}</h3>
+                            <p className={`text-xs ${s.sub} font-bold mt-1`}>Requested By: {p.deletionRequest?.requestedBy}</p>
+                            <p className={`text-sm ${s.accent} mt-2`}>Reason: "{p.deletionRequest?.reason}"</p>
+                            <p className={`text-xs ${s.sub} mt-1`}>Requested At: {new Date(p.deletionRequest?.requestedAt || 0).toLocaleString()}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                const note = prompt('Admin Note (optional):');
+                                if (note !== null) handleApproveDeletion(p, note);
+                              }}
+                              className="px-4 py-2 bg-red-600 text-white text-xs font-black rounded-xl uppercase hover:bg-red-500"
+                            >
+                              Approve Delete
+                            </button>
+                            <button
+                              onClick={() => handleRejectDeletion(p)}
+                              className="px-4 py-2 bg-slate-600 text-white text-xs font-black rounded-xl uppercase hover:bg-slate-500"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -678,6 +750,23 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
       </div>
 
       {/* Modals */}
+      {timelinePatient && (
+        <PatientTimelineModal
+          patient={timelinePatient}
+          theme={theme}
+          onClose={() => setTimelinePatient(null)}
+          onEdit={(p) => {
+            setTimelinePatient(null);
+            handleEditPatient(p);
+          }}
+          onDelete={(p, reason) => {
+            setTimelinePatient(null);
+            setPatientToDelete(p);
+            handleSoftDelete(reason);
+          }}
+        />
+      )}
+
       <DoctorFormModal 
         isOpen={isDoctorModalOpen} 
         onClose={() => { setIsDoctorModalOpen(false); setEditingDoctor(null); }} 

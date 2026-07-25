@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Patient, PatientStatus, Theme, Doctor } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
-import { DOCTORS } from '../constants';
 import PatientContactModal from '../components/PatientContactModal';
 
 interface StaffReceptionProps {

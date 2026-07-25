@@ -1,11 +1,14 @@
 
 import { Doctor, PatientStatus } from './types';
 
-export const DOCTORS: Doctor[] = [
-  { id: 'dr-1', name: 'Dr. Anya Sharma', section: 'A', maxCapacity: 5, estWaitPerPatient: 5 },
-  { id: 'dr-2', name: 'Dr. Rohan Patel', section: 'B', maxCapacity: 5, estWaitPerPatient: 5 },
-  { id: 'dr-3', name: 'Dr. Sarah Jenkins', section: 'C', maxCapacity: 5, estWaitPerPatient: 5 },
-  { id: 'dr-4', name: 'Dr. Michael Chen', section: 'A', maxCapacity: 5, estWaitPerPatient: 5 },
+export const TREATMENT_TYPES = [
+  'Laboratory', 
+  'X-Ray', 
+  'ECG', 
+  'Ultrasound', 
+  'Physiotherapy', 
+  'Dressing Room', 
+  'Injection Room'
 ];
 
 export const STATUS_LABELS: Record<PatientStatus, string> = {

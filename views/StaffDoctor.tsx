@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Patient, PatientStatus, Doctor, Theme, PatientCategory, DoctorRoster } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
-import { DOCTORS } from '../constants';
+import { TREATMENT_TYPES } from '../constants';
 import PatientContactModal from '../components/PatientContactModal';
 
 interface StaffDoctorProps {
@@ -22,6 +22,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
   const [department, setDepartment] = useState('General Medicine');
   const [referralSource, setReferralSource] = useState('Direct');
   const [directive, setDirective] = useState('Discharge');
+  const [targetTreatmentType, setTargetTreatmentType] = useState(TREATMENT_TYPES[0]);
   const [message, setMessage] = useState('');
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
   const isProcessingAutoCall = useRef(false);
@@ -70,9 +71,14 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
   // The "Inner Queue" (People currently assigned to this doctor and waiting at their door)
   const innerQueue = patients.filter(p => 
     p.assignedDoctorId === activeDoctorId && 
-    p.status === PatientStatus.DOCTOR_WAITING &&
+    (p.status === PatientStatus.DOCTOR_WAITING || p.status === PatientStatus.DOCTOR_RECONSULT) &&
     !p.isAbsent
-  );
+  ).sort((a, b) => {
+    if (a.isPriorityReconsult && !b.isPriorityReconsult) return -1;
+    if (!a.isPriorityReconsult && b.isPriorityReconsult) return 1;
+    if (a.lastCalledTimestamp && b.lastCalledTimestamp) return a.lastCalledTimestamp - b.lastCalledTimestamp;
+    return a.timestamp - b.timestamp;
+  });
 
   // The "Main Hall" (People waiting to be called by this specific doctor)
   const waitingHall = patients.filter(p => 
@@ -127,18 +133,29 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
 
   const handleComplete = async () => {
     if (!currentPatient || !prescription) return;
+    let finalStatus = PatientStatus.CONSULTATION_DONE;
+    let finalTreatmentType = undefined;
+    
+    if (directive === 'Referred to Treatment') {
+      finalStatus = PatientStatus.TREATMENT;
+      finalTreatmentType = targetTreatmentType;
+    }
+
     await mockFirestore.updatePatientAudited(currentPatient.id, {
-      status: PatientStatus.CONSULTATION_DONE,
+      status: finalStatus,
       prescription,
       diagnosisICD,
       department,
       referralSource,
-      directive
+      directive,
+      assignedTreatmentType: finalTreatmentType,
+      isPriorityReconsult: false // Reset flag if they are discharged or sent to treatment again
     }, 'Standard Consultation Completed', activeDoctorId);
     setMessage('Consultation completed');
     setPrescription('');
     setDiagnosisICD('');
     setDirective('Discharge');
+    setTargetTreatmentType(TREATMENT_TYPES[0]);
     setTimeout(() => setMessage(''), 3000);
   };
 
@@ -274,6 +291,13 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                     </div>
                   </div>
                   
+                  {currentPatient.treatmentResults && (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl mb-4">
+                      <div className="text-[8px] font-black uppercase tracking-widest text-emerald-600 mb-1">Treatment Results (Priority)</div>
+                      <div className="text-sm font-bold text-emerald-700">{currentPatient.treatmentResults}</div>
+                    </div>
+                  )}
+                  
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -302,6 +326,20 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                             <option>Discharge</option>
                           </select>
                         </div>
+                        {directive === 'Referred to Treatment' && (
+                          <div className="space-y-2">
+                            <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Treatment Station</label>
+                            <select 
+                              value={targetTreatmentType}
+                              onChange={(e) => setTargetTreatmentType(e.target.value)}
+                              className={`w-full rounded-xl px-4 py-3 font-black text-[10px] border-2 outline-none transition-all ${s.input}`}
+                            >
+                              {TREATMENT_TYPES.map(t => (
+                                <option key={t} value={t}>{t}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>ICD-10 Code</label>
                           <input 

@@ -95,6 +95,13 @@ export interface Patient {
   isPriority?: boolean;
   isAbsent?: boolean;
   
+  // Deletion Request
+  deletionRequest?: {
+    requestedBy: string;
+    reason: string;
+    requestedAt: number;
+  };
+  
   // Identity Fields
   idType?: string;
   idNumber?: string;
@@ -162,6 +169,9 @@ export interface Patient {
   dietPlan?: string;
   dietLastChecked?: number;
   customMeds?: string[]; // "Outside Meds" intake
+  assignedTreatmentType?: string; // e.g. 'X-Ray', 'Laboratory'
+  treatmentResults?: string; // e.g. 'Fracture detected in left tibia'
+  isPriorityReconsult?: boolean; // True when returning from treatment
   
   // Clinical workflow additions
   prescription?: string;

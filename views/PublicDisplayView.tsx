@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Patient, PatientStatus, Theme, SystemThresholds, DoctorRoster, Doctor } from '../types';
-import { STATUS_LABELS } from '../constants';
+import { STATUS_LABELS, TREATMENT_TYPES } from '../constants';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { User, ArrowLeft, Info, RotateCcw, Monitor, Lock, UserCog, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -68,7 +68,7 @@ const FullScreenAnnouncement: React.FC<FullScreenAnnouncementProps> = ({ patient
 
   return (
     <div className={`fixed inset-0 z-[9999] flex items-center justify-center animate-in fade-in zoom-in duration-500 select-none ${theme === 'light' ? 'bg-[#F5F5F7]/95' : 'bg-[#000]/95'} backdrop-blur-xl`}>
-      <div className="text-center relative z-10 w-full max-w-5xl px-6 sm:px-20 py-12 sm:py-20 rounded-[3rem] sm:rounded-[5rem] border-4 shadow-2xl bg-white dark:bg-[#1D1D1F] border-[#0A84FF]/30 mx-4">
+      <div className="text-center relative z-10 w-full px-6 sm:px-12 lg:px-20 py-12 sm:py-20 rounded-[3rem] sm:rounded-[5rem] border-4 shadow-2xl bg-white dark:bg-[#1D1D1F] border-[#0A84FF]/30 mx-4">
         <h3 className="text-2xl sm:text-5xl font-black text-[#0A84FF] uppercase tracking-[0.5em] sm:tracking-[1em] mb-6 sm:mb-12 animate-pulse">Calling</h3>
         <h2 className="text-5xl sm:text-7xl md:text-[10rem] lg:text-[12rem] font-black text-[#1D1D1F] dark:text-white leading-tight sm:leading-none mb-4 tracking-tighter break-words">{patient.name}</h2>
         <p className="text-xl sm:text-3xl md:text-5xl font-bold text-[#86868b] mb-10 sm:mb-20 tracking-[0.1em] sm:tracking-[0.2em]">PATIENT ID: {patient.id}</p>
@@ -94,6 +94,9 @@ const PublicDisplayView: React.FC<{
 }> = ({ patients, viewType, theme, thresholds, roster, doctors, onBack, isAdmin, onEditPatient, onDeletePatient }) => {
   const [announcingPatient, setAnnouncingPatient] = useState<Patient | null>(null);
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
+  const [targetDoctorId, setTargetDoctorId] = useState<string>('');
+  const [targetSection, setTargetSection] = useState<string>('');
+  const [targetTreatment, setTargetTreatment] = useState<string>('');
   const lastAnnouncedRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
@@ -146,6 +149,18 @@ const PublicDisplayView: React.FC<{
   const renderList = (filterStatuses: PatientStatus[]) => {
     const list = patients
       .filter(p => filterStatuses.includes(p.status) && !p.isDeleted)
+      .filter(p => {
+        if (viewType === 'doctor' && targetDoctorId) {
+          if (p.assignedDoctorId && p.assignedDoctorId !== targetDoctorId) return false;
+        }
+        if (viewType === 'checkin' && targetSection) {
+          if (p.checkinSection && p.checkinSection !== targetSection) return false;
+        }
+        if (viewType === 'treatment' && targetTreatment) {
+          if (p.assignedTreatmentType && p.assignedTreatmentType !== targetTreatment) return false;
+        }
+        return true;
+      })
       .sort((a, b) => {
         if (a.lastCalledTimestamp && b.lastCalledTimestamp) return b.lastCalledTimestamp - a.lastCalledTimestamp;
         if (a.lastCalledTimestamp) return -1;
@@ -254,22 +269,6 @@ const PublicDisplayView: React.FC<{
                         EST. WAIT: <span className="text-white font-black">{waitTime} MIN</span>
                       </div>
                     </div>
-                    {isAdmin && (
-                      <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setViewingPatient(p); }}
-                          className="p-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all shadow-lg border border-white/10"
-                        >
-                          <UserCog className="w-5 h-5" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); onDeletePatient?.(p); }}
-                          className="p-3 rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-200 transition-all shadow-lg border border-red-500/20"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   {/* First Item Glow Effect */}
@@ -346,8 +345,43 @@ const PublicDisplayView: React.FC<{
           <h1 className="text-7xl font-black text-white uppercase tracking-[0.15em] drop-shadow-2xl">{getBoardTitle()}</h1>
         </div>
         
-        <div className="flex items-center justify-end gap-6 w-[350px]">
-          {/* Controls removed as requested, area kept for symmetry */}
+        <div className="flex items-center justify-end gap-6 w-[350px] opacity-0 hover:opacity-100 transition-opacity">
+          {viewType === 'doctor' && (
+            <select 
+              value={targetDoctorId} 
+              onChange={e => setTargetDoctorId(e.target.value)}
+              className="bg-white/10 text-white border border-white/20 rounded-xl px-4 py-2 outline-none text-sm font-bold"
+            >
+              <option value="">All Doctors</option>
+              {doctors.map(d => (
+                <option key={d.id} value={d.id} className="text-black">{d.name}</option>
+              ))}
+            </select>
+          )}
+          {viewType === 'checkin' && (
+            <select 
+              value={targetSection} 
+              onChange={e => setTargetSection(e.target.value)}
+              className="bg-white/10 text-white border border-white/20 rounded-xl px-4 py-2 outline-none text-sm font-bold"
+            >
+              <option value="">All Sections</option>
+              {['A', 'B', 'C'].map(s => (
+                <option key={s} value={s} className="text-black">Section {s}</option>
+              ))}
+            </select>
+          )}
+          {viewType === 'treatment' && (
+            <select 
+              value={targetTreatment} 
+              onChange={e => setTargetTreatment(e.target.value)}
+              className="bg-white/10 text-white border border-white/20 rounded-xl px-4 py-2 outline-none text-sm font-bold"
+            >
+              <option value="">All Treatments</option>
+              {TREATMENT_TYPES.map(t => (
+                <option key={t} value={t} className="text-black">{t}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 

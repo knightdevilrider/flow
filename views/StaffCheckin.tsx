@@ -1,18 +1,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Patient, PatientStatus, Section, Theme } from '../types';
+import { Patient, PatientStatus, Section, Theme, Doctor } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
-import { DOCTORS } from '../constants';
 
 interface StaffCheckinProps {
   patients: Patient[];
   theme: Theme;
+  doctors: Doctor[];
   isAdmin?: boolean;
   onEditPatient?: (p: Patient) => void;
   onDeletePatient?: (p: Patient) => void;
 }
 
-const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, isAdmin, onEditPatient, onDeletePatient }) => {
+const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, isAdmin, onEditPatient, onDeletePatient }) => {
   const [selectedSection, setSelectedSection] = useState<Section | ''>('');
   const [message, setMessage] = useState('');
   const isProcessingAutoCall = useRef(false);
@@ -125,7 +125,7 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, isAdmin, o
                 <div className={`px-6 py-3 rounded-2xl sm:rounded-3xl border-2 inline-flex items-center gap-3 shadow-inner ${s.btn}`}>
                   <span className="w-2 h-2 rounded-full bg-[#0A84FF] animate-pulse"></span>
                   <p className="text-xs sm:text-sm font-black tracking-tight">
-                    Consultant: Dr. {DOCTORS.find(d => d.id === currentPatient.assignedDoctorId)?.name}
+                    Consultant: Dr. {doctors.find(d => d.id === currentPatient.assignedDoctorId)?.name}
                   </p>
                 </div>
                 

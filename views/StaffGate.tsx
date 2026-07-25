@@ -19,7 +19,16 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [registryFilter, setRegistryFilter] = useState<string>(() => {
+    return localStorage.getItem('gate_registry_filter') || 'All';
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('gate_registry_filter', registryFilter);
+  }, [registryFilter]);
+
   const [formData, setFormData] = useState({
+    staffName: '',
     category: PatientCategory.OPD,
     name: '',
     phone: '',
@@ -300,6 +309,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         targetPatientId: formData.targetPatientId,
         relationship: formData.relationship,
         emergencyContact: formData.emergencyContact,
+        authorName: formData.staffName || 'Gate Staff',
         activeVisitorsCount: 0,
         expiryTimestamp: formData.category === PatientCategory.VISITOR ? Date.now() + (2 * 60 * 60 * 1000) : undefined
       });
@@ -309,6 +319,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         setSuccess(false);
         setStep('selection');
         setFormData({
+          staffName: formData.staffName,
           category: PatientCategory.OPD,
           name: '',
           phone: '',
@@ -362,7 +373,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         </div>
 
         {/* Main Selection Grid */}
-        <div className="w-full max-w-5xl space-y-4 sm:space-y-6 pb-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 space-y-4 sm:space-y-6 pb-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {categories.map((cat) => (
               <button
@@ -381,18 +392,39 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         </div>
         
         {/* Processed Registry (Selection View) */}
-        <div className="w-full max-w-5xl mx-auto px-4 mt-12 pb-10 border-t border-white/5 pt-8">
-          <h3 className={`text-sm font-black uppercase tracking-widest mb-6 ${s.sub}`}>Processed Registry (Gate Entry)</h3>
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h3 className={`text-sm font-black uppercase tracking-widest ${s.sub}`}>Processed Registry (Gate Entry)</h3>
+            
+            <div className="flex flex-wrap gap-2">
+              {['All', ...Object.values(PatientCategory)].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setRegistryFilter(cat)}
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                    registryFilter === cat 
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                      : `opacity-50 hover:opacity-100 border ${s.card}`
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-70 hover:opacity-100 transition-opacity">
-            {patients.filter(p => p.status === PatientStatus.RECEPTION_WAITING)
+            {patients.filter(p => p.status === PatientStatus.GATE_REGISTERED || p.status === PatientStatus.RECEPTION_WAITING)
+              .filter(p => registryFilter === 'All' || p.category === registryFilter)
               .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-              .slice(0, 8)
+              .slice(0, 16)
               .map((p) => (
                 <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
                    <div className="min-w-0">
                       <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
                       <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>{p.category} • {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-80 ${s.accent} mt-0.5`}>Staff: {p.authorName || 'Unknown'}</div>
                    </div>
                 </div>
               ))
@@ -772,18 +804,39 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
       </div>
 
       {/* Processed Registry (Form View) */}
-      <div className="w-full max-w-5xl mx-auto px-4 mt-12 pb-10 border-t border-white/5 pt-8">
-        <h3 className={`text-sm font-black uppercase tracking-widest mb-6 ${s.sub}`}>Processed Registry (Gate Entry)</h3>
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h3 className={`text-sm font-black uppercase tracking-widest ${s.sub}`}>Processed Registry (Gate Entry)</h3>
+          
+          <div className="flex flex-wrap gap-2">
+            {['All', ...Object.values(PatientCategory)].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setRegistryFilter(cat)}
+                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
+                  registryFilter === cat 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
+                    : `opacity-50 hover:opacity-100 border ${s.card}`
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-70 hover:opacity-100 transition-opacity">
-          {patients.filter(p => p.status === PatientStatus.RECEPTION_WAITING)
+          {patients.filter(p => p.status === PatientStatus.GATE_REGISTERED || p.status === PatientStatus.RECEPTION_WAITING)
+            .filter(p => registryFilter === 'All' || p.category === registryFilter)
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-            .slice(0, 8)
+            .slice(0, 16)
             .map((p) => (
               <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
                  <div className="min-w-0">
                     <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
                     <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>{p.category} • {new Date(p.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-80 ${s.accent} mt-0.5`}>Staff: {p.authorName || 'Unknown'}</div>
                  </div>
               </div>
             ))

@@ -10,7 +10,9 @@ import {
   deleteDoc, 
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  arrayUnion,
+  runTransaction
 } from 'firebase/firestore';
 import { workspaceSync } from '../src/services/workspaceSync';
 import { getAccessToken } from '../src/lib/firebase';
@@ -144,50 +146,75 @@ export const mockFirestore = {
     }
 
     const patientRef = doc(db, COLLECTION, id);
-    const snap = await getDoc(patientRef);
-    if (!snap.exists()) return;
-
-    const current = snap.data() as Patient;
-    const history = [...(current.history || []), finalLog];
     
+    // Use arrayUnion for atomic updates to the history array
     await updateDoc(patientRef, {
       ...updates,
-      history
+      history: arrayUnion(finalLog)
     } as any);
 
     if (updates.status === PatientStatus.COMPLETED) {
-      const token = getAccessToken();
-      if (token) {
-        const updatedPatient = { ...current, ...updates, history };
-        const success = await workspaceSync.syncPatientToWorkspace(token, updatedPatient);
-        if (success) {
-          await deleteDoc(patientRef);
+      const snap = await getDoc(patientRef);
+      if (snap.exists()) {
+        const fullPatient = snap.data() as Patient;
+        const token = getAccessToken();
+        if (token) {
+          const success = await workspaceSync.syncPatientToWorkspace(token, fullPatient);
+          if (success) {
+            await deleteDoc(patientRef);
+          }
         }
       }
     }
   },
 
-  callPatient: async (id: string, newStatus: PatientStatus, currentPatients: Patient[]) => {
-    const p = currentPatients.find(item => item.id === id);
-    if (!p) return;
-
+  callPatient: async (id: string, newStatus: PatientStatus, currentPatients?: Patient[]) => {
     const now = Date.now();
-    const updatedHistory = [...p.history];
-    if (updatedHistory.length > 0) {
-      updatedHistory[updatedHistory.length - 1].exitTime = now;
+
+    if (useLocalStorage) {
+      const data = localStorage.getItem('hospital_patients_demo');
+      const patients = data ? JSON.parse(data) : [];
+      const idx = patients.findIndex((p: any) => p.id === id);
+      if (idx !== -1) {
+        const updatedHistory = [...(patients[idx].history || [])];
+        if (updatedHistory.length > 0) {
+          updatedHistory[updatedHistory.length - 1].exitTime = now;
+        }
+        updatedHistory.push({ stage: newStatus, entryTime: now, callTime: now, authorId: 'STAFF_AUTO' });
+        patients[idx].status = newStatus;
+        patients[idx].lastCalledTimestamp = now;
+        patients[idx].history = updatedHistory;
+        localStorage.setItem('hospital_patients_demo', JSON.stringify(patients));
+      }
+      return;
     }
 
-    updatedHistory.push({ 
-      stage: newStatus, 
-      entryTime: now,
-      callTime: now,
-      authorId: 'STAFF_AUTO'
-    });
+    const patientRef = doc(db, COLLECTION, id);
 
-    await mockFirestore.updatePatient(id, { 
-      status: newStatus, 
-      lastCalledTimestamp: now,
-      history: updatedHistory
+    // Use a transaction since we are modifying the last element of the history array
+    await runTransaction(db, async (transaction) => {
+      const pDoc = await transaction.get(patientRef);
+      if (!pDoc.exists()) return;
+
+      const pData = pDoc.data() as Patient;
+      const updatedHistory = [...(pData.history || [])];
+      
+      if (updatedHistory.length > 0) {
+        updatedHistory[updatedHistory.length - 1].exitTime = now;
+      }
+
+      updatedHistory.push({ 
+        stage: newStatus, 
+        entryTime: now,
+        callTime: now,
+        authorId: 'STAFF_AUTO'
+      });
+
+      transaction.update(patientRef, {
+        status: newStatus,
+        lastCalledTimestamp: now,
+        history: updatedHistory
+      });
     });
   },
 

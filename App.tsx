@@ -311,28 +311,40 @@ const App: React.FC = () => {
   const handleSoftDelete = async (reason: string) => {
     if (!patientToDelete) return;
     try {
-      await mockFirestore.updatePatient(patientToDelete.id, {
-        isDeleted: true,
-        deletedAt: Date.now(),
-        deletedReason: reason,
-        lastModifiedBy: user?.displayName || 'Admin'
-      });
+      if (isAdminMode) {
+        await mockFirestore.updatePatient(patientToDelete.id, {
+          isDeleted: true,
+          deletedAt: Date.now(),
+          deletedReason: reason,
+          lastModifiedBy: user?.displayName || 'Admin'
+        });
 
-      // Log to Google Sheets if we have an access token
-      if (accessToken) {
-        try {
-          await googleSheetsService.logDeletion({
-            patientId: patientToDelete.id,
-            patientName: patientToDelete.name,
-            reason: reason,
-            deletedAt: new Date().toLocaleString(),
-            deletedBy: user?.displayName || 'Admin'
-          }, accessToken);
-          console.log('Logged deletion to Google Sheets');
-        } catch (sheetErr) {
-          console.error('Failed to log to Google Sheets:', sheetErr);
-          // Don't block the UI if logging fails
+        // Log to Google Sheets if we have an access token
+        if (accessToken) {
+          try {
+            await googleSheetsService.logDeletion({
+              patientId: patientToDelete.id,
+              patientName: patientToDelete.name,
+              reason: reason,
+              deletedAt: new Date().toLocaleString(),
+              deletedBy: user?.displayName || 'Admin'
+            }, accessToken);
+            console.log('Logged deletion to Google Sheets');
+          } catch (sheetErr) {
+            console.error('Failed to log to Google Sheets:', sheetErr);
+            // Don't block the UI if logging fails
+          }
         }
+      } else {
+        // Submit deletion request instead of direct delete
+        await mockFirestore.updatePatient(patientToDelete.id, {
+          deletionRequest: {
+            requestedBy: 'Staff Member',
+            reason: reason,
+            requestedAt: Date.now()
+          }
+        });
+        alert('Deletion request submitted to Admin for approval.');
       }
 
       setIsDeleteModalOpen(false);
@@ -473,7 +485,7 @@ const App: React.FC = () => {
         const gateCount = activePatients.filter(p => p.status === PatientStatus.GATE_REGISTERED).length;
         return <StaffGate patients={activePatients} theme={theme} waitingCount={gateCount} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.RECEPTION: return <StaffReception patients={activePatients} theme={theme} doctors={doctors} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
-      case UserRole.CHECKIN: return <StaffCheckin patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.CHECKIN: return <StaffCheckin patients={activePatients} theme={theme} doctors={doctors} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.DOCTOR: return <StaffDoctor patients={activePatients} theme={theme} doctors={doctors} roster={roster} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.MEDICAL: return <StaffMedical patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.WARD_CARE: return <StaffWardCare patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
@@ -545,6 +557,7 @@ const App: React.FC = () => {
           onConfirm={handleSoftDelete}
           patient={patientToDelete}
           theme={theme}
+          isAdmin={isAdminMode}
         />
       </Layout>
     </div>

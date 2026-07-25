@@ -5,13 +5,11 @@ import { Patient, Theme } from '../../types';
 
 interface PatientTableProps {
   patients: Patient[];
-  onEdit: (patient: Patient) => void;
-  onDelete: (patient: Patient) => void;
+  onPatientClick: (patient: Patient) => void;
   theme: Theme;
-  isAdmin: boolean;
 }
 
-const PatientTable: React.FC<PatientTableProps> = ({ patients, onEdit, onDelete, theme, isAdmin }) => {
+const PatientTable: React.FC<PatientTableProps> = ({ patients, onPatientClick, theme }) => {
   const themeStyles = {
     dark: {
       text: 'text-white',
@@ -38,7 +36,7 @@ const PatientTable: React.FC<PatientTableProps> = ({ patients, onEdit, onDelete,
 
   const s = themeStyles[theme];
 
-  const activePatients = patients.filter(p => !p.isDeleted);
+  const activePatients = patients.filter(p => !p.isDeleted && p.status !== 'discharged' && p.status !== 'completed');
 
   return (
     <div className={`rounded-[2.5rem] border ${s.border} overflow-hidden shadow-xl`}>
@@ -50,12 +48,11 @@ const PatientTable: React.FC<PatientTableProps> = ({ patients, onEdit, onDelete,
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Medical Info</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Admission</th>
               <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest">Status</th>
-              {isAdmin && <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-right">Actions</th>}
             </tr>
           </thead>
           <tbody className={`divide-y ${s.border} ${s.text}`}>
             {activePatients.map(p => (
-              <tr key={p.id} className={`${s.rowHover} transition-colors`}>
+              <tr key={p.id} onClick={() => onPatientClick(p)} className={`${s.rowHover} transition-colors cursor-pointer`}>
                 <td className="px-6 py-5">
                   <div className="font-bold">{p.name}</div>
                   <div className="text-[10px] opacity-50 uppercase tracking-widest">ID: {p.id} • {p.age}Y • {p.gender}</div>
@@ -95,31 +92,11 @@ const PatientTable: React.FC<PatientTableProps> = ({ patients, onEdit, onDelete,
                     {p.status.replace(/_/g, ' ')}
                   </span>
                 </td>
-                {isAdmin && (
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => onEdit(p)}
-                        className="p-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all"
-                        title="Edit Patient"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => onDelete(p)}
-                        className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                        title="Delete Patient"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                )}
               </tr>
             ))}
             {activePatients.length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 5 : 4} className="px-6 py-20 text-center">
+                <td colSpan={4} className="px-6 py-20 text-center">
                   <div className="flex flex-col items-center opacity-30">
                     <ShieldAlert className="w-12 h-12 mb-4" />
                     <p className="text-sm font-black uppercase tracking-widest">No active patient records found</p>

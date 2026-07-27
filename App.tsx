@@ -12,7 +12,8 @@ import {
   AuditLog,
   BillingScheme,
   NABHKPI,
-  StaffMember
+  StaffMember,
+  InventoryItem
 } from './types';
 import { mockFirestore } from './services/mockFirestore';
 import { googleSheetsService } from './services/googleSheets';
@@ -24,7 +25,8 @@ import StaffGate from './views/StaffGate';
 import StaffReception from './views/StaffReception';
 import StaffCheckin from './views/StaffCheckin';
 import StaffDoctor from './views/StaffDoctor';
-import StaffMedical from './views/StaffMedical';
+import StaffTreatment from './views/StaffTreatment';
+import StaffPharmacy from './views/StaffPharmacy';
 import StaffVisitorMgmt from './views/StaffVisitorMgmt';
 import StaffAttendantMgmt from './views/StaffAttendantMgmt';
 import PublicDisplayView from './views/PublicDisplayView';
@@ -50,11 +52,11 @@ const App: React.FC = () => {
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedSubView, setSelectedSubView] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('demo') === 'true' || params.get('demo') === null; // Default to true if not specified
+    return params.get('demo') === 'true';
   });
   const [theme, setTheme] = useState<Theme>('dark');
   const [showSettings, setShowSettings] = useState(false);
@@ -94,6 +96,7 @@ const App: React.FC = () => {
     { id: '3', name: 'Emergency TAT', target: 15, unit: 'minutes', currentValue: 18 }
   ]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
     const unsubscribe = initAuth(
@@ -118,8 +121,9 @@ const App: React.FC = () => {
         setUser(result.user);
         setAccessToken(result.accessToken);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login failed", err);
+      setError(err.message || 'Authentication failed. Please try again.');
     }
   };
 
@@ -166,22 +170,29 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
+    let unsubscribeInventory: (() => void) | undefined;
     
     const initConnection = () => {
-      setLoading(true);
       unsubscribe = mockFirestore.onSnapshot(
         (data) => {
           setPatients(data);
-          setLoading(false);
           setError(null);
         },
         (err: any) => {
-          console.error("Connection Stream Error:", err);
-          const errorMessage = typeof err === 'string' 
-            ? err 
+          console.error("Firestore initialization error:", err);
+          const errorMessage = err.code === 'permission-denied' 
+            ? "Database access denied. Please log in with an authorized account." 
             : (err.message || err.error_description || JSON.stringify(err));
           setError(errorMessage);
-          setLoading(false);
+        }
+      );
+
+      unsubscribeInventory = mockFirestore.onInventorySnapshot(
+        (data) => {
+          setInventory(data);
+        },
+        (err: any) => {
+          console.error("Inventory Stream Error:", err);
         }
       );
     };
@@ -189,6 +200,7 @@ const App: React.FC = () => {
     initConnection();
     return () => {
       if (unsubscribe) unsubscribe();
+      if (unsubscribeInventory) unsubscribeInventory();
     };
   }, [isDemoMode]);
 
@@ -372,44 +384,7 @@ const App: React.FC = () => {
     dark: 'bg-[#000000] text-[#F5F5F7]',
     titanium: 'bg-[#3D3D3D] text-[#E8E8ED]'
   };
-
-  if (!user && !loading && !isDemoMode) {
-    return (
-      <div className={`min-h-screen ${themeClasses[theme]} flex flex-col items-center justify-center p-8 text-center`}>
-         <div className="w-24 h-24 mb-8 rounded-3xl bg-indigo-600 flex items-center justify-center shadow-2xl">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-         </div>
-         <h1 className="text-4xl font-black uppercase tracking-tighter mb-4">Audit Intelligence Pro</h1>
-         <p className="text-white/40 mb-12 max-w-md">Enterprise-grade clinical compliance monitoring. Please sign in with your hospital Google account to access real-time auditing and Workspace exports.</p>
-         
-         <button 
-           onClick={handleLogin}
-           className="gsi-material-button"
-         >
-           <div className="gsi-material-button-state"></div>
-           <div className="gsi-material-button-content-wrapper">
-             <div className="gsi-material-button-icon">
-               <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style={{ display: 'block' }}>
-                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
-                 <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
-                 <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
-                 <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
-                 <path fill="none" d="M0 0h48v48H0z"></path>
-               </svg>
-             </div>
-             <span className="gsi-material-button-contents">Sign in with Google</span>
-           </div>
-         </button>
-
-         <button 
-           onClick={startDemoMode}
-           className="mt-8 text-[10px] font-black uppercase tracking-widest text-white/20 hover:text-white/40 transition-colors"
-         >
-           Enter Offline Demo Mode
-         </button>
-      </div>
-    );
-  }
+  // Removed Auth barrier entirely because the network is blocking Firebase Auth
 
   if (loading) {
     return (
@@ -432,7 +407,7 @@ const App: React.FC = () => {
         </div>
         <div className="flex flex-col sm:flex-row gap-4">
           <button onClick={() => window.location.reload()} className="px-10 py-5 bg-blue-600 text-white font-black rounded-2xl uppercase tracking-widest hover:bg-blue-500 transition-all">Retry</button>
-          <button onClick={startDemoMode} className="px-10 py-5 bg-slate-800 text-slate-300 font-black rounded-2xl uppercase tracking-widest hover:bg-slate-700 transition-all border border-slate-700">Demo Mode</button>
+          
         </div>
       </div>
     );
@@ -486,15 +461,16 @@ const App: React.FC = () => {
         return <StaffGate patients={activePatients} theme={theme} waitingCount={gateCount} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.RECEPTION: return <StaffReception patients={activePatients} theme={theme} doctors={doctors} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.CHECKIN: return <StaffCheckin patients={activePatients} theme={theme} doctors={doctors} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
-      case UserRole.DOCTOR: return <StaffDoctor patients={activePatients} theme={theme} doctors={doctors} roster={roster} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
-      case UserRole.MEDICAL: return <StaffMedical patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.DOCTOR: return <StaffDoctor patients={activePatients} inventory={inventory} theme={theme} doctors={doctors} roster={roster} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.MEDICAL: return <StaffTreatment patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.PHARMACY: return <StaffPharmacy patients={activePatients} inventory={inventory} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.WARD_CARE: return <StaffWardCare patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.BILLING: return <StaffBilling patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.VISITOR_MGMT: return <StaffVisitorMgmt patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.ATTENDANT_MGMT: return <StaffAttendantMgmt patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.ADMIN: return <AdminConsole theme={theme} doctors={doctors} staff={staff} rotations={roster as any} isAdmin={isAdminMode} />;
       case UserRole.PUBLIC: return <PublicDisplayView patients={patients} viewType={selectedSubView || 'all'} theme={theme} thresholds={thresholds} roster={roster} doctors={doctors} onBack={handleBack} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
-      default: return <MainDashboard onRoleSelect={handleRoleSelect} patients={activePatients} theme={theme} onThemeToggle={toggleTheme} onSettings={handleSettingsClick} />;
+      default: return <MainDashboard onRoleSelect={handleRoleSelect} patients={activePatients} theme={theme} onThemeToggle={toggleTheme} onSettings={handleSettingsClick} isAdmin={isAdminMode} />;
     }
   };
 
@@ -502,8 +478,9 @@ const App: React.FC = () => {
     [UserRole.GATE]: 'Gate & Security',
     [UserRole.RECEPTION]: 'Reception & IPD Admission',
     [UserRole.CHECKIN]: 'Check In Station',
-    [UserRole.DOCTOR]: 'Clinical Review Console',
-    [UserRole.MEDICAL]: 'Pharmacy & Medication Intake',
+    [UserRole.DOCTOR]: 'Doctor Portal',
+    [UserRole.MEDICAL]: 'Treatment Station',
+    [UserRole.PHARMACY]: 'Pharmacy & Billing',
     [UserRole.WARD_CARE]: 'Ward Management & Bed Care',
     [UserRole.BILLING]: 'Billing & Discharge',
     [UserRole.VISITOR_MGMT]: 'Visitor Tracking',

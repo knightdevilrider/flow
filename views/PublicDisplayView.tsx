@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Patient, PatientStatus, Theme, SystemThresholds, DoctorRoster, Doctor } from '../types';
 import { STATUS_LABELS, TREATMENT_TYPES } from '../constants';
 import { GoogleGenAI, Modality } from "@google/genai";
-import { User, ArrowLeft, Info, RotateCcw, Monitor, Lock, UserCog, Trash2 } from 'lucide-react';
+import { User, ArrowLeft, Info, RotateCcw, Monitor, Lock, Unlock, UserCog, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PatientContactModal from '../components/PatientContactModal';
 
@@ -97,7 +97,29 @@ const PublicDisplayView: React.FC<{
   const [targetDoctorId, setTargetDoctorId] = useState<string>('');
   const [targetSection, setTargetSection] = useState<string>('');
   const [targetTreatment, setTargetTreatment] = useState<string>('');
+  const [isLocked, setIsLocked] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const lastAnnouncedRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCarouselIndex(prev => prev + 1);
+    }, 10000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleLockToggle = () => {
+    if (isLocked) {
+      const pin = window.prompt("Enter Admin PIN to unlock:");
+      if (pin === "1234") {
+        setIsLocked(false);
+      } else if (pin !== null) {
+        alert("Incorrect PIN");
+      }
+    } else {
+      setIsLocked(true);
+    }
+  };
 
   useEffect(() => {
     const now = Date.now();
@@ -146,6 +168,35 @@ const PublicDisplayView: React.FC<{
   const activePatients = patients.filter(p => p.status !== PatientStatus.COMPLETED);
   const isHighVolume = activePatients.length > thresholds.highVolumeTrigger;
 
+  const getFilterStatuses = () => {
+    switch (viewType) {
+      case 'reception': return [PatientStatus.GATE_REGISTERED, PatientStatus.RECEPTION_WAITING, PatientStatus.PAYMENT_DONE];
+      case 'checkin': return [PatientStatus.PAYMENT_DONE, PatientStatus.CHECKIN_WAITING];
+      case 'doctor': return [PatientStatus.CHECKIN_WAITING, PatientStatus.DOCTOR_WAITING];
+      case 'treatment': return [PatientStatus.TREATMENT];
+      case 'medical': return [PatientStatus.CONSULTATION_DONE, PatientStatus.MEDICINE_WAITING];
+      case 'ward': return [PatientStatus.ADMISSION_DESK, PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED];
+      default: return [];
+    }
+  };
+
+  const getFilteredListLength = () => {
+    return patients
+      .filter(p => getFilterStatuses().includes(p.status) && !p.isDeleted)
+      .filter(p => {
+        if (viewType === 'doctor' && targetDoctorId) {
+          if (p.assignedDoctorId && p.assignedDoctorId !== targetDoctorId) return false;
+        }
+        if (viewType === 'checkin' && targetSection) {
+          if (p.checkinSection && p.checkinSection !== targetSection) return false;
+        }
+        if (viewType === 'treatment' && targetTreatment) {
+          if (p.assignedTreatmentType && p.assignedTreatmentType !== targetTreatment) return false;
+        }
+        return true;
+      }).length;
+  };
+
   const renderList = (filterStatuses: PatientStatus[]) => {
     const list = patients
       .filter(p => filterStatuses.includes(p.status) && !p.isDeleted)
@@ -166,130 +217,222 @@ const PublicDisplayView: React.FC<{
         if (a.lastCalledTimestamp) return -1;
         if (b.lastCalledTimestamp) return 1;
         return a.timestamp - b.timestamp;
-      })
-      .slice(0, 10);
+      });
 
-    return (
-      <div className="flex-1 flex flex-col px-10 pb-6 overflow-hidden">
-        {/* Column Headers - Refined Grid Alignment */}
-        <div className="grid grid-cols-[100px_2.5fr_1fr_1.5fr] gap-6 px-16 py-6 mb-2">
-          <div className="text-[#8E8E93] text-base font-black uppercase tracking-[0.5em]">No</div>
-          <div className="text-[#8E8E93] text-base font-black uppercase tracking-[0.5em]">Patient Name</div>
-          <div className="text-[#8E8E93] text-base font-black uppercase tracking-[0.5em] text-center">Service</div>
-          <div className="text-[#8E8E93] text-base font-black uppercase tracking-[0.5em] text-right">Status & Time</div>
-        </div>
+    const activeCalls = list.slice(0, 3);
+    
+    // Calculate pages
+    const CAROUSEL_SIZE = 6;
+    const GRID_SIZE = 32;
+    const pages: any[] = [];
+    let idx = 3;
 
-        <div className="flex-1 overflow-y-auto pr-4 space-y-4 apple-scroll">
-          <AnimatePresence mode="popLayout">
-            {list.map((p, i) => {
-              const isFirst = i === 0;
-              // Dynamic countdown: Base estimate - elapsed minutes since registration
-              const elapsedMinutes = Math.floor((Date.now() - p.timestamp) / 60000);
-              const baseWait = (i + 1) * 15;
-              const waitTime = Math.max(1, baseWait - elapsedMinutes);
-              
-              const statusText = p.status === PatientStatus.GATE_REGISTERED 
-                ? 'Proceeding to Gate' 
-                : p.status === PatientStatus.RECEPTION_WAITING 
-                ? 'Awaiting Front Desk' 
-                : STATUS_LABELS[p.status];
+    if (list.length <= 3) {
+      pages.push({ type: 'empty' });
+    } else {
+      // Up to 2 pages of detailed carousel
+      while (idx < Math.min(14, list.length)) {
+        pages.push({ type: 'carousel', items: list.slice(idx, idx + CAROUSEL_SIZE), startIndex: idx });
+        idx += CAROUSEL_SIZE;
+      }
+      // Remaining as grid
+      while (idx < list.length) {
+        pages.push({ type: 'grid', items: list.slice(idx, idx + GRID_SIZE), startIndex: idx });
+        idx += GRID_SIZE;
+      }
+    }
 
-              return (
-                <motion.div 
-                  key={p.id} 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: i * 0.05 }}
-                  className={`grid grid-cols-[100px_2.5fr_1fr_1.5fr] items-center gap-6 bg-[#007AFF] rounded-[1.5rem] relative overflow-hidden group transition-all duration-500 shadow-[0_15px_30px_rgba(0,122,255,0.2)] ${
-                    isFirst ? 'p-10 min-h-[180px] border-8 border-white/10 ring-4 ring-[#007AFF] scale-[1.01]' : 'p-3 min-h-[70px]'
-                  }`}
-                >
-                  {/* Next Up Badge for first item */}
-                  {isFirst && (
-                    <div className="absolute top-0 right-0 px-8 py-2 bg-white text-[#007AFF] font-black text-xs uppercase tracking-[0.4em] rounded-bl-3xl shadow-lg animate-pulse z-20">
-                      Next to Call
-                    </div>
-                  )}
+    const activePage = pages[carouselIndex % pages.length];
 
-                  {/* Queue Number */}
-                  <div className="flex justify-center items-center">
-                    <span 
-                      className={`${isFirst ? 'text-[120px]' : 'text-[40px]'} font-black leading-none text-transparent transition-all duration-500`}
-                      style={{ WebkitTextStroke: `${isFirst ? '3px' : '1px'} rgba(255,255,255,0.6)` }}
-                    >
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                  </div>
+    const renderPatientDetail = (p: Patient, i: number, isLarge: boolean) => {
+      const elapsedMinutes = Math.floor((Date.now() - p.timestamp) / 60000);
+      const baseWait = (i + 1) * 15;
+      const waitTime = Math.max(1, baseWait - elapsedMinutes);
+      const statusText = p.status === PatientStatus.GATE_REGISTERED ? 'Proceeding to Gate' : p.status === PatientStatus.RECEPTION_WAITING ? 'Awaiting Front Desk' : STATUS_LABELS[p.status];
 
-                  {/* Profile + Name */}
-                  <div className="flex items-center gap-8 overflow-hidden">
-                    <div className={`${isFirst ? 'w-24 h-24' : 'w-10 h-10'} rounded-full bg-[#B2E0FF] border-[4px] border-white/30 flex items-center justify-center flex-shrink-0 shadow-inner relative transition-all duration-500`}>
-                      <User className={`${isFirst ? 'w-12 h-12' : 'w-5 h-5'} text-[#5856D6]`} />
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      {(() => {
-                        const parts = p.name.split(' ');
-                        const first = parts[0];
-                        const last = parts.slice(1).join(' ');
-                        return (
-                          <>
-                            <h3 className={`text-white ${isFirst ? 'text-4xl md:text-5xl' : 'text-lg md:text-xl'} font-black uppercase tracking-tight leading-none drop-shadow-xl truncate`}>
-                              {first}
-                            </h3>
-                            {last && (
-                              <h4 className={`text-white/80 ${isFirst ? 'text-3xl md:text-4xl' : 'text-base md:text-lg'} font-bold uppercase tracking-tight leading-tight truncate`}>
-                                {last}
-                              </h4>
-                            )}
-                          </>
-                        );
-                      })()}
-                      {isFirst && <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.2em] mt-2">ID: {p.id.slice(-6)}</p>}
-                    </div>
-                  </div>
+      let containerCls = 'p-5 min-h-[110px] bg-[#1C1C1E] dark:bg-[#2C2C2E] border border-white/10 rounded-[1.5rem] flex items-center gap-6 shrink-0 shadow-lg';
+      let numCls = 'text-[40px] w-16 text-center';
+      let firstCls = 'text-2xl';
+      let lastCls = 'text-xl';
+      let idCls = 'text-xs mt-1';
+      let pillCls = 'w-12 h-12';
+      let pillTextCls = 'text-xs';
+      let statusCls = 'text-lg';
+      let waitCls = 'text-xs';
 
-                  {/* Service Pill */}
-                  <div className="flex justify-center">
-                    <div className={`${isFirst ? 'px-8 py-3' : 'px-3 py-1'} rounded-full border-2 border-white/20 bg-white/5 backdrop-blur-sm transition-all duration-500`}>
-                      <span className={`text-white ${isFirst ? 'text-xl' : 'text-[9px]'} font-black uppercase tracking-[0.1em]`}>
-                        {p.category.split('(')[0].trim()}
-                      </span>
-                    </div>
-                  </div>
+      if (isLarge) {
+        if (i === 0) {
+          containerCls = 'p-8 min-h-[220px] bg-[#007AFF] rounded-[2.5rem] border-8 border-white/10 ring-4 ring-[#007AFF] flex flex-col justify-between shrink-0 shadow-2xl';
+          numCls = 'text-[100px]';
+          firstCls = 'text-6xl';
+          lastCls = 'text-5xl';
+          idCls = 'text-sm mt-3';
+          pillCls = 'px-8 py-3';
+          pillTextCls = 'text-2xl';
+          statusCls = 'text-3xl lg:text-4xl';
+          waitCls = 'text-sm';
+        } else if (i === 1) {
+          containerCls = 'p-6 min-h-[140px] bg-[#007AFF]/90 rounded-[1.5rem] border-4 border-white/10 flex flex-col justify-between shrink-0 shadow-xl';
+          numCls = 'text-[60px]';
+          firstCls = 'text-4xl';
+          lastCls = 'text-3xl';
+          idCls = 'text-xs mt-1';
+          pillCls = 'px-5 py-2';
+          pillTextCls = 'text-lg';
+          statusCls = 'text-xl lg:text-2xl';
+          waitCls = 'text-[10px]';
+        } else {
+          containerCls = 'p-4 min-h-[90px] bg-[#007AFF]/80 rounded-[1rem] border-2 border-white/10 flex flex-col justify-between shrink-0 shadow-lg';
+          numCls = 'text-[40px]';
+          firstCls = 'text-2xl';
+          lastCls = 'text-xl';
+          idCls = 'text-[10px] mt-0.5';
+          pillCls = 'px-4 py-1.5';
+          pillTextCls = 'text-sm';
+          statusCls = 'text-base lg:text-lg';
+          waitCls = 'text-[8px]';
+        }
+      }
 
-                  {/* Destination & Situation */}
-                  <div className="flex items-center gap-6 justify-end pr-6">
-                    <div className="text-right">
-                      <div className={`text-white ${isFirst ? 'text-3xl' : 'text-base'} font-black uppercase tracking-wider transition-all duration-500`}>
-                        {statusText}
-                      </div>
-                      <div className={`text-white/50 ${isFirst ? 'text-xs' : 'text-[8px]'} font-bold uppercase tracking-[0.05em]`}>
-                        EST. WAIT: <span className="text-white font-black">{waitTime} MIN</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* First Item Glow Effect */}
-                  {isFirst && (
-                    <motion.div 
-                      className="absolute inset-0 pointer-events-none bg-white/5"
-                      animate={{ opacity: [0.05, 0.15, 0.05] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                  )}
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-
-          {list.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center opacity-5">
-              <Monitor className="w-[20rem] h-[20rem]" />
-              <p className="text-5xl font-black uppercase tracking-[0.8em] mt-10">Current Status: Clear</p>
+      return (
+        <motion.div 
+          key={p.id} 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className={`relative overflow-hidden group transition-all duration-500 ${containerCls}`}
+        >
+          {isLarge && i === 0 && (
+            <div className="absolute top-0 right-0 px-8 py-2 bg-white text-[#007AFF] font-black text-xs uppercase tracking-[0.4em] rounded-bl-3xl shadow-lg animate-pulse z-20">
+              Next to Call
             </div>
           )}
+          
+          {isLarge ? (
+            <>
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-6">
+                  <span className={`${numCls} font-black leading-none text-transparent`} style={{ WebkitTextStroke: '2px rgba(255,255,255,0.6)' }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div>
+                    {(() => {
+                      const parts = p.name.split(' ');
+                      const first = parts[0];
+                      const last = parts.slice(1).join(' ');
+                      return (
+                        <>
+                          <h3 className={`text-white ${firstCls} font-black uppercase tracking-tight leading-none drop-shadow-xl truncate`}>{first}</h3>
+                          {last && <h4 className={`text-white/80 ${lastCls} font-bold uppercase tracking-tight leading-tight truncate`}>{last}</h4>}
+                        </>
+                      );
+                    })()}
+                    <p className={`text-white/40 ${idCls} font-black uppercase tracking-[0.2em]`}>ID: {(p.id || '').slice(-6)}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-between items-end mt-4 gap-4 overflow-hidden">
+                <div className={`${pillCls} rounded-full border-2 border-white/20 bg-white/5 backdrop-blur-sm shrink-0 flex items-center justify-center`}>
+                  <span className={`text-white ${pillTextCls} font-black uppercase tracking-[0.1em]`}>{p.category.split('(')[0].trim()}</span>
+                </div>
+                <div className="text-right min-w-0 flex-1">
+                  <div className={`text-white ${statusCls} font-black uppercase tracking-wider truncate`}>{statusText}</div>
+                  <div className={`text-white/50 ${waitCls} font-bold uppercase tracking-[0.05em] truncate`}>EST. WAIT: <span className="text-white font-black">{waitTime} MIN</span></div>
+                </div>
+              </div>
+              <motion.div className="absolute inset-0 pointer-events-none bg-white/5" animate={{ opacity: [0.05, 0.15, 0.05] }} transition={{ duration: 2, repeat: Infinity }} />
+            </>
+          ) : (
+            <>
+              <span className={`${numCls} font-black text-[#8E8E93] text-center`}>{String(i + 1).padStart(2, '0')}</span>
+              <div className="w-10 h-10 rounded-full bg-[#007AFF]/20 flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-[#0A84FF]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className={`text-lg font-black uppercase truncate ${s.text}`}>{p.name}</h3>
+                <p className="text-xs text-[#8E8E93] font-bold uppercase tracking-widest">{p.category.split('(')[0].trim()}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <div className={`text-sm font-black uppercase ${s.text}`}>{statusText}</div>
+                <div className="text-[10px] text-[#8E8E93] font-bold">WAIT: {waitTime}M</div>
+              </div>
+            </>
+          )}
+        </motion.div>
+      );
+    };
+
+    return (
+      <div className="flex-1 flex p-4 gap-4 overflow-hidden">
+        {/* Left Panel: Active Calls */}
+        <div className="w-1/2 flex flex-col">
+          <div className="flex-1 flex flex-col relative overflow-hidden bg-black/20 rounded-[2rem] border border-white/5 p-4">
+
+            <div className="flex-1 flex flex-col justify-center gap-4">
+              <AnimatePresence mode="popLayout">
+                {activeCalls.length > 0 ? (
+                  activeCalls.map((p, idx) => renderPatientDetail(p, idx, true))
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="flex-1 flex flex-col items-center justify-center text-white/20"
+                  >
+                    <div className="text-6xl mb-4">☕</div>
+                    <div className="font-black uppercase tracking-widest text-lg">Desk Available</div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Panel: Up Next Waitlist (Carousel / Grid) */}
+        <div className="w-1/2 flex flex-col">
+          <div className="flex-1 flex flex-col relative overflow-hidden bg-black/20 rounded-[2rem] border border-white/5 p-4">
+            <div className="flex-1 relative">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`page-${carouselIndex % Math.max(1, pages.length)}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 flex flex-col"
+                >
+                {activePage?.type === 'empty' && (
+                  <div className="flex-1 flex flex-col items-center justify-center opacity-50">
+                    <User className="w-16 h-16 mb-4 text-white/20" />
+                    <h3 className="text-lg font-black text-white/40 uppercase tracking-widest">Queue is Empty</h3>
+                  </div>
+                )}
+                
+                {activePage?.type === 'carousel' && (
+                  <div className="flex flex-col gap-4 pr-2">
+                    {activePage.items.map((p: Patient, idx: number) => renderPatientDetail(p, activePage.startIndex + idx, false))}
+                  </div>
+                )}
+
+                {activePage?.type === 'grid' && (
+                  <div className="flex flex-col h-full">
+                    <div className="grid grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-max pr-2 pb-10">
+                      {activePage.items.map((p: Patient, idx: number) => {
+                        const qNum = activePage.startIndex + idx + 1;
+                        return (
+                          <div key={p.id} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center text-center">
+                            <span className="text-[10px] text-[#8E8E93] font-bold mb-1">Queue #{qNum}</span>
+                            <span className={`text-xl font-black tracking-widest ${s.text}`}>{p.tokenNumber || (p.id || '').slice(-6)}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+          
+
         </div>
       </div>
     );
@@ -322,21 +465,24 @@ const PublicDisplayView: React.FC<{
   return (
     <div className={`h-screen w-screen flex flex-col bg-[#121212] relative overflow-hidden`}>
       {/* High-Fidelity Header */}
-      <div className="flex items-center justify-between px-16 py-10 bg-[#121212] border-b border-white/5 z-30 shrink-0">
+      <div className="flex items-center justify-between px-16 py-6 bg-[#121212] border-b border-white/5 z-30 shrink-0">
         <div className="flex items-center gap-6 w-[350px] group">
           <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform -translate-x-4 group-hover:translate-x-0">
+            {!isLocked && (
+              <button 
+                onClick={onBack} 
+                className="w-16 h-16 flex items-center justify-center rounded-[2rem] bg-white/5 hover:bg-white/10 transition-all border border-white/10 shadow-lg"
+                title="Back to Dashboard"
+              >
+                <ArrowLeft className="w-8 h-8 text-white/60" />
+              </button>
+            )}
             <button 
-              onClick={onBack} 
-              className="w-16 h-16 flex items-center justify-center rounded-[2rem] bg-white/5 hover:bg-white/10 transition-all border border-white/10 shadow-lg"
-              title="Back to Dashboard"
+              onClick={handleLockToggle}
+              className={`w-16 h-16 flex items-center justify-center rounded-[2rem] hover:bg-white/10 transition-all border shadow-lg ${isLocked ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/10'}`}
+              title={isLocked ? "Unlock Screen" : "Lock Screen"}
             >
-              <ArrowLeft className="w-8 h-8 text-white/60" />
-            </button>
-            <button 
-              className="w-16 h-16 flex items-center justify-center rounded-[2rem] bg-white/5 hover:bg-white/10 transition-all border border-white/10 shadow-lg"
-              title="Lock Screen"
-            >
-              <Lock className="w-8 h-8 text-white/60" />
+              {isLocked ? <Lock className="w-8 h-8 text-red-500/80" /> : <Unlock className="w-8 h-8 text-white/60" />}
             </button>
           </div>
         </div>
@@ -345,8 +491,12 @@ const PublicDisplayView: React.FC<{
           <h1 className="text-7xl font-black text-white uppercase tracking-[0.15em] drop-shadow-2xl">{getBoardTitle()}</h1>
         </div>
         
-        <div className="flex items-center justify-end gap-6 w-[350px] opacity-0 hover:opacity-100 transition-opacity">
-          {viewType === 'doctor' && (
+        <div className="flex items-center justify-end gap-6 w-[350px]">
+          <h1 className="text-5xl font-black text-[#34C759] uppercase tracking-[0.1em] drop-shadow-2xl whitespace-nowrap">
+            {Math.max(0, getFilteredListLength() - 2)} WAITING
+          </h1>
+          <div className="absolute top-8 right-16 opacity-0 hover:opacity-100 transition-opacity flex items-center gap-4">
+            {viewType === 'doctor' && (
             <select 
               value={targetDoctorId} 
               onChange={e => setTargetDoctorId(e.target.value)}
@@ -381,21 +531,22 @@ const PublicDisplayView: React.FC<{
                 <option key={t} value={t} className="text-black">{t}</option>
               ))}
             </select>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
       {/* High Volume / Emergency Alerts */}
-      {(isHighVolume || thresholds.isMaintenanceMode) && (
+      {thresholds.isMaintenanceMode && (
         <div className={`absolute top-[120px] left-0 w-full z-50 animate-bounce`}>
-          <div className={`px-10 py-6 flex items-center justify-center gap-8 shadow-2xl ${thresholds.isMaintenanceMode ? 'bg-red-600' : 'bg-amber-500'}`}>
+          <div className="px-10 py-6 flex items-center justify-center gap-8 shadow-2xl bg-red-600">
             <span className="text-4xl">⚠️</span>
             <div className="flex flex-col">
               <span className="text-white font-black uppercase tracking-[0.3em] text-lg leading-none">
-                {thresholds.isMaintenanceMode ? 'CRITICAL SYSTEM BLACKOUT' : 'ANALYTICS: HIGH VOLUME MODE'}
+                CRITICAL SYSTEM BLACKOUT
               </span>
               <span className="text-white/70 font-black uppercase tracking-widest text-[10px] mt-1">
-                {thresholds.isMaintenanceMode ? 'All non-emergency services suspended until further notice' : `Waiting threshold exceeded (${activePatients.length} active subjects)`}
+                All non-emergency services suspended until further notice
               </span>
             </div>
             <span className="text-4xl">⚠️</span>
@@ -403,7 +554,7 @@ const PublicDisplayView: React.FC<{
         </div>
       )}
 
-      <div className={`flex-1 overflow-hidden ${(isHighVolume || thresholds.isMaintenanceMode) ? 'pt-32' : ''}`}>
+      <div className={`flex-1 overflow-hidden ${thresholds.isMaintenanceMode ? 'pt-32' : ''}`}>
         <PatientContactModal 
           patient={viewingPatient} 
           onClose={() => setViewingPatient(null)} 
@@ -416,12 +567,12 @@ const PublicDisplayView: React.FC<{
       </div>
 
       {/* High-Fidelity News Ticker Footer */}
-      <div className="h-24 bg-[#007AFF] flex items-center overflow-hidden border-t-4 border-white/20 shadow-[0_-20px_50px_rgba(0,122,255,0.2)] z-30">
+      <div className="h-12 bg-[#007AFF] flex items-center overflow-hidden border-t-2 border-white/20 shadow-[0_-10px_30px_rgba(0,122,255,0.2)] z-30">
         <div className="animate-marquee flex gap-24 items-center whitespace-nowrap">
-          <span className="text-white text-4xl font-black uppercase tracking-[0.3em]">
+          <span className="text-white text-xl font-black uppercase tracking-[0.3em]">
              THANK YOU FOR YOUR COOPERATION • WELCOME TO SAIDEEP HOSPITAL • PLEASE WATCH FOR YOUR NAME • ADVANCED HEALTH SYSTEMS • 
           </span>
-          <span className="text-white text-4xl font-black uppercase tracking-[0.3em]">
+          <span className="text-white text-xl font-black uppercase tracking-[0.3em]">
              THANK YOU FOR YOUR COOPERATION • WELCOME TO SAIDEEP HOSPITAL • PLEASE WATCH FOR YOUR NAME • ADVANCED HEALTH SYSTEMS • 
           </span>
         </div>

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -9,8 +9,9 @@ export const auth = getAuth(app);
 
 export const googleProvider = new GoogleAuthProvider();
 // Add required Workspace scopes
-googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
-googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+// googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
+// googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 let cachedAccessToken: string | null = null;
 let isSigningIn = false;
@@ -32,12 +33,9 @@ export const initAuth = (
 export const googleSignIn = async (): Promise<{ user: User; accessToken: string } | null> => {
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, googleProvider);
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    if (!credential?.accessToken) {
-      throw new Error('Failed to get access token');
-    }
-    cachedAccessToken = credential.accessToken;
+    const result = await signInAnonymously(auth);
+    // Use a dummy access token since we aren't using Google OAuth anymore
+    cachedAccessToken = 'anonymous-token';
     return { user: result.user, accessToken: cachedAccessToken };
   } catch (error) {
     console.error('Sign in error:', error);

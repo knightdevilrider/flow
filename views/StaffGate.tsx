@@ -367,9 +367,9 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
 
   if (step === 'selection') {
     return (
-      <div className="flex flex-col items-center py-4 sm:py-8 px-4 w-full">
+      <div className="flex flex-col items-center py-4 sm:py-8 w-full">
         {/* Title Group */}
-        <div className="text-center mb-6 sm:mb-10 w-full max-w-4xl mx-auto">
+        <div className="text-center mb-6 sm:mb-10 w-full max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
             <h1 className={`text-2xl sm:text-4xl font-black tracking-tight ${s.header}`}>Intake System</h1>
             
@@ -388,7 +388,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         </div>
 
         {/* Main Selection Grid */}
-        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 space-y-4 sm:space-y-6 pb-8">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 space-y-4 sm:space-y-6 pb-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {categories.map((cat) => (
               <button
@@ -407,7 +407,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         </div>
         
         {/* Processed Registry (Selection View) */}
-        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 mx-auto mt-12 pb-10 border-t border-white/5 pt-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h3 className={`text-sm font-black uppercase tracking-widest ${s.sub}`}>Processed Registry (Gate Entry)</h3>
             
@@ -453,7 +453,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
   const isVisitorOrAttendant = formData.category === PatientCategory.VISITOR || formData.category === PatientCategory.ATTENDANT;
 
   return (
-    <div className="max-w-5xl mx-auto py-4 sm:py-8 px-4 sm:px-6">
+    <div className="w-full mx-auto py-4 sm:py-8 max-w-7xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
       {/* Form Header */}
       <div className="flex justify-between items-center mb-6 sm:mb-8 gap-4">
         <button onClick={() => setStep('selection')} className={`px-6 py-2 rounded-full text-[10px] font-black transition-all border flex items-center justify-center gap-2 shadow-md active:scale-95 ${s.btn}`}>

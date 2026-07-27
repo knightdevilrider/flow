@@ -1,9 +1,19 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Patient, PatientStatus, Doctor, Theme, PatientCategory, DoctorRoster } from '../types';
+import { Patient, PatientStatus, Doctor, Theme, PatientCategory, DoctorRoster, InventoryItem } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
 import { TREATMENT_TYPES } from '../constants';
 import PatientContactModal from '../components/PatientContactModal';
+import DoctorPatientQueue from '../components/doctor/DoctorPatientQueue';
+import VitalsDisplay from '../components/doctor/VitalsDisplay';
+import ClinicalNotesDictation from '../components/doctor/ClinicalNotesDictation';
+import ClinicalCodingAssistant from '../components/doctor/ClinicalCodingAssistant';
+import PatientHistoryTimeline from '../components/doctor/PatientHistoryTimeline';
+import RxWriter, { PrescribedDrug } from '../components/doctor/RxWriter';
+import MedicalCertificateGenerator from '../components/doctor/MedicalCertificateGenerator';
+import PrintablePrescription from '../components/doctor/PrintablePrescription';
+import SmartLabResults from '../components/doctor/SmartLabResults';
+import FollowUpScheduler from '../components/doctor/FollowUpScheduler';
+import DoctorDailySummary from '../components/doctor/DoctorDailySummary';
 
 interface StaffDoctorProps {
   patients: Patient[];
@@ -11,11 +21,12 @@ interface StaffDoctorProps {
   doctors: Doctor[];
   roster: DoctorRoster[];
   isAdmin?: boolean;
+  inventory?: InventoryItem[];
   onEditPatient?: (p: Patient) => void;
   onDeletePatient?: (p: Patient) => void;
 }
 
-const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: allDoctors, roster, isAdmin, onEditPatient, onDeletePatient }) => {
+const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: allDoctors, roster, inventory = [], isAdmin, onEditPatient, onDeletePatient }) => {
   const [activeDoctorId, setActiveDoctorId] = useState<string>('');
   const [prescription, setPrescription] = useState('');
   const [diagnosisICD, setDiagnosisICD] = useState('');
@@ -25,6 +36,12 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
   const [targetTreatmentType, setTargetTreatmentType] = useState(TREATMENT_TYPES[0]);
   const [message, setMessage] = useState('');
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
+  const [prescribedDrugs, setPrescribedDrugs] = useState<PrescribedDrug[]>([]);
+  const [medicalCertificates, setMedicalCertificates] = useState<any[]>([]);
+  const [showHistoryTimeline, setShowHistoryTimeline] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [showDailyDigest, setShowDailyDigest] = useState(false);
+  const [isQueueHeld, setIsQueueHeld] = useState(false);
   const isProcessingAutoCall = useRef(false);
 
   const themeStyles = {
@@ -62,13 +79,12 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
 
   const s = themeStyles[theme];
 
-  // Use allDoctors from props instead of DOCTORS constant
-  // Filter only those who are on the roster for today
-  const activeRosterDocs = allDoctors.filter(d => roster.some(r => (r as any).staffId === d.id || (r as any).doctorId === d.id));
+  const activeRosterDocs = roster.length > 0 
+    ? allDoctors.filter(d => roster.some(r => (r as any).staffId === d.id || (r as any).doctorId === d.id))
+    : allDoctors;
   const doctor = activeRosterDocs.find(d => d.id === activeDoctorId);
   const currentRosterItem = roster.find(r => (r as any).staffId === activeDoctorId || (r as any).doctorId === activeDoctorId);
   
-  // The "Inner Queue" (People currently assigned to this doctor and waiting at their door)
   const innerQueue = patients.filter(p => 
     p.assignedDoctorId === activeDoctorId && 
     (p.status === PatientStatus.DOCTOR_WAITING || p.status === PatientStatus.DOCTOR_RECONSULT) &&
@@ -80,7 +96,6 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
     return a.timestamp - b.timestamp;
   });
 
-  // The "Main Hall" (People waiting to be called by this specific doctor)
   const waitingHall = patients.filter(p => 
     p.assignedDoctorId === activeDoctorId && 
     p.status === PatientStatus.CHECKIN_WAITING && 
@@ -88,20 +103,18 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
     !p.isAbsent
   );
 
-  const currentPatient = innerQueue[0]; // The person currently inside the room
+  const currentPatient = innerQueue[0]; 
   const absentList = patients.filter(p => 
     p.assignedDoctorId === activeDoctorId && 
     p.status === PatientStatus.CHECKIN_WAITING && 
     p.isAbsent
   );
 
-  // AUTO-INTAKE LOGIC
   useEffect(() => {
-    if (!activeDoctorId || !doctor || isProcessingAutoCall.current) return;
+    if (!activeDoctorId || !doctor || isProcessingAutoCall.current || isQueueHeld) return;
 
     const capacity = doctor.maxCapacity || 5;
     
-    // If the room + the chairs outside (inner queue) have space
     if (innerQueue.length < capacity && waitingHall.length > 0) {
       const callNextAutomatically = async () => {
         isProcessingAutoCall.current = true;
@@ -110,7 +123,6 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
         try {
           setMessage(`Auto-Calling: ${next.name}`);
           await mockFirestore.callPatient(next.id, PatientStatus.DOCTOR_WAITING, patients);
-          // Small delay to let DB sync and avoid double-calling
           setTimeout(() => {
             isProcessingAutoCall.current = false;
             setMessage('');
@@ -122,7 +134,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
 
       callNextAutomatically();
     }
-  }, [patients, activeDoctorId, doctor, innerQueue.length, waitingHall]);
+  }, [patients, activeDoctorId, doctor, innerQueue.length, waitingHall, isQueueHeld]);
 
   const handleSkip = async () => {
     if (currentPatient) {
@@ -132,7 +144,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
   };
 
   const handleComplete = async () => {
-    if (!currentPatient || !prescription) return;
+    if (!currentPatient || (!prescription && prescribedDrugs.length === 0)) return;
     let finalStatus = PatientStatus.CONSULTATION_DONE;
     let finalTreatmentType = undefined;
     
@@ -144,16 +156,19 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
     await mockFirestore.updatePatientAudited(currentPatient.id, {
       status: finalStatus,
       prescription,
+      prescribedDrugs,
       diagnosisICD,
       department,
       referralSource,
       directive,
       assignedTreatmentType: finalTreatmentType,
-      isPriorityReconsult: false // Reset flag if they are discharged or sent to treatment again
+      isPriorityReconsult: false 
     }, 'Standard Consultation Completed', activeDoctorId);
     setMessage('Consultation completed');
     setPrescription('');
     setDiagnosisICD('');
+    setPrescribedDrugs([]);
+    setMedicalCertificates([]);
     setDirective('Discharge');
     setTargetTreatmentType(TREATMENT_TYPES[0]);
     setTimeout(() => setMessage(''), 3000);
@@ -188,7 +203,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
         </div>
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {activeRosterDocs.map(d => {
-            const rosterItem = roster.find(r => r.doctorId === d.id);
+            const rosterItem = roster.find(r => (r as any).doctorId === d.id || (r as any).staffId === d.id);
             return (
               <button
                 key={d.id}
@@ -222,7 +237,34 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {showDailyDigest && doctor && (
+        <DoctorDailySummary
+          doctor={doctor}
+          patients={patients}
+          theme={theme}
+          themeStyles={s}
+          onClose={() => setShowDailyDigest(false)}
+        />
+      )}
+      {showPrintPreview && currentPatient && (
+        <PrintablePrescription
+          patient={currentPatient}
+          doctor={doctor}
+          prescription={prescription}
+          prescribedDrugs={prescribedDrugs}
+          diagnosisICD={diagnosisICD}
+          onClose={() => setShowPrintPreview(false)}
+        />
+      )}
+      {showHistoryTimeline && (
+        <PatientHistoryTimeline
+          patient={currentPatient}
+          onClose={() => setShowHistoryTimeline(false)}
+          theme={theme}
+          themeStyles={s}
+        />
+      )}
       <PatientContactModal 
         patient={viewingPatient} 
         onClose={() => setViewingPatient(null)} 
@@ -230,6 +272,26 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
         onEdit={onEditPatient}
         onDelete={onDeletePatient}
       />
+      
+      {/* Sidebar Queue (1 col) */}
+      <div className="hidden lg:block lg:col-span-1">
+        <DoctorPatientQueue 
+          innerQueue={innerQueue}
+          waitingHall={waitingHall}
+          absentList={absentList}
+          theme={theme}
+          themeStyles={s}
+          currentPatientId={currentPatient?.id}
+          onSelectPatient={setViewingPatient}
+          isQueueHeld={isQueueHeld}
+          onHoldQueue={() => setIsQueueHeld(!isQueueHeld)}
+          onExit={() => setActiveDoctorId('')}
+          onEmergencyBypass={() => {
+            alert("Select an emergency patient to bypass the queue.");
+          }}
+        />
+      </div>
+
       <div className="lg:col-span-3 space-y-6">
         <section className={`p-6 sm:p-8 rounded-[2rem] border shadow-xl relative overflow-hidden ${s.card}`}>
           <div className={`absolute top-0 right-0 px-6 py-2 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-2xl shadow-lg ${theme === 'light' ? 'bg-[#0071e3]' : 'bg-[#0A84FF]'}`}>
@@ -238,7 +300,6 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
           
           {currentPatient ? (
             <div className="relative">
-              {/* FORCED RECONCILIATION LOCK */}
               {currentPatient.specialistNotesPending && (
                 <div className="absolute inset-[-1.5rem] sm:inset-[-2rem] z-50 backdrop-blur-xl border-4 border-amber-500/30 rounded-[2.5rem] flex flex-col items-center justify-center p-6 text-center bg-white/40 dark:bg-black/40 animate-in fade-in zoom-in-95">
                   <div className="text-5xl mb-4 animate-bounce">🤝</div>
@@ -285,12 +346,22 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex items-center gap-4">
                       <span className={`text-[9px] font-black uppercase tracking-widest ${s.accent}`}>ID: {currentPatient.id}</span>
                       <span className={`text-[9px] font-black uppercase tracking-widest ${s.sub}`}>{currentPatient.age || 'N/A'}Y • {currentPatient.gender}</span>
+                      <button 
+                        onClick={() => setShowHistoryTimeline(true)}
+                        className={`ml-auto px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all hover:bg-[#0071e3] hover:text-white hover:border-[#0071e3] active:scale-95 ${s.badge}`}
+                      >
+                        View History
+                      </button>
                     </div>
                   </div>
                   
+                  <div className="pt-4">
+                    <VitalsDisplay patient={currentPatient} theme={theme} themeStyles={s} />
+                  </div>
+
                   {currentPatient.treatmentResults && (
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl mb-4">
                       <div className="text-[8px] font-black uppercase tracking-widest text-emerald-600 mb-1">Treatment Results (Priority)</div>
@@ -340,30 +411,37 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                             </select>
                           </div>
                         )}
-                        <div className="space-y-2">
-                          <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>ICD-10 Code</label>
-                          <input 
-                            type="text"
-                            value={diagnosisICD}
-                            onChange={(e) => setDiagnosisICD(e.target.value)}
-                            placeholder="e.g. K29.5"
-                            className={`w-full rounded-xl px-4 py-3 font-black text-[10px] border-2 outline-none transition-all ${s.input}`}
-                          />
+                        <div className="col-span-1 sm:col-span-2">
+                           <ClinicalCodingAssistant value={diagnosisICD} onChange={setDiagnosisICD} themeStyles={s} />
                         </div>
                       </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <SmartLabResults theme={theme} themeStyles={s} />
+                        <FollowUpScheduler themeStyles={s} />
+                      </div>
 
-                      <div className="space-y-2">
-                        <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Findings & Directive</label>
-                      <textarea
-                        value={prescription}
-                        onChange={(e) => setPrescription(e.target.value)}
-                        placeholder="Symptoms, diagnosis, medical plan..."
-                        rows={4}
-                        className={`w-full rounded-2xl px-6 py-4 font-black text-xs sm:text-sm resize-none border-2 outline-none transition-all ${s.input} focus:ring-4 focus:ring-[#0071e3]/20 shadow-inner`}
+                      <ClinicalNotesDictation value={prescription} onChange={setPrescription} themeStyles={s} />
+
+                      <RxWriter 
+                        prescribedDrugs={prescribedDrugs} 
+                        onChange={setPrescribedDrugs} 
+                        patientAllergies={currentPatient.allergies || []}
+                        themeStyles={s} 
+                        inventory={inventory}
                       />
-                    </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <MedicalCertificateGenerator 
+                        patient={currentPatient} 
+                        theme={theme} 
+                        themeStyles={s} 
+                        onGenerate={(cert) => {
+                          setMedicalCertificates([...medicalCertificates, cert]);
+                          alert("Medical Certificate generated and attached to patient record.");
+                        }} 
+                      />
+                      <div className="w-px h-6 bg-black/10 dark:bg-white/10 mx-1"></div>
                       <button 
                         onClick={handleAdmit}
                         className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all active:scale-95 shadow-sm ${s.badge} hover:bg-[#0071e3]/5`}
@@ -385,9 +463,16 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                     </div>
 
                     <div className="flex gap-4">
+                      <button
+                        onClick={() => setShowPrintPreview(true)}
+                        disabled={!prescription && prescribedDrugs.length === 0}
+                        className={`px-6 py-4 rounded-2xl font-black transition-all uppercase tracking-[0.3em] text-[10px] border-2 disabled:opacity-50 active:scale-95 ${s.btn}`}
+                      >
+                        PRINT Rx
+                      </button>
                       <button 
                         onClick={handleComplete}
-                        disabled={!prescription}
+                        disabled={!prescription && prescribedDrugs.length === 0}
                         className={`flex-1 py-4 rounded-2xl font-black transition-all uppercase tracking-[0.3em] text-[10px] shadow-xl disabled:opacity-50 active:scale-95 ${theme === 'light' ? 'bg-[#0071e3] text-white hover:bg-[#0077ed]' : 'bg-[#0A84FF] text-white hover:bg-[#409fff]'}`}
                       >
                         FINISH
@@ -415,37 +500,38 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
             </div>
           )}
         </section>
-
-        <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
-          <div className="flex justify-between items-center mb-4">
-             <h3 className={`text-sm font-black uppercase tracking-tight ${s.header}`}>Door Queue ({innerQueue.length})</h3>
-             <button onClick={() => setActiveDoctorId('')} className={`text-[8px] font-black uppercase tracking-[0.2em] transition-all px-4 py-1.5 rounded-full border ${s.sub} hover:text-red-500 hover:border-red-500/30 active:scale-95`}>EXIT</button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {innerQueue.map((p, idx) => (
-              <div 
-                key={p.id} 
-                onClick={() => setViewingPatient(p)}
-                className={`p-4 rounded-2xl border flex items-center justify-between group shadow-sm active:scale-95 transition-all cursor-pointer hover:shadow-md ${idx === 0 ? 'border-[#0071e3] bg-[#0071e3]/5' : s.card}`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black border ${idx === 0 ? 'text-[#0071e3] border-[#0071e3]' : s.btn}`}>{idx === 0 ? 'IN' : idx + 1}</div>
-                  <div>
-                    <div className={`text-xs font-black truncate max-w-[100px] ${s.header}`}>{p.name}</div>
-                    <div className={`text-[8px] font-black uppercase opacity-40 ${s.sub}`}>{p.id}</div>
-                  </div>
-                </div>
-                {p.isPriority && <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>}
-              </div>
-            ))}
-          </div>
-        </section>
         
-        {/* Processed Registry */}
-        <section className="space-y-4 pt-6 border-t border-white/5">
-          <div className="flex items-center justify-between">
-            <h3 className={`text-sm font-black uppercase tracking-widest ${s.sub}`}>Processed Registry (Consultations Done)</h3>
+        {/* Processed Registry & End of Day Stats */}
+        <section className="space-y-4 pt-6 border-t border-black/5 dark:border-white/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-3 ${s.sub}`}>
+              Processed Registry
+              <button 
+                onClick={() => setShowDailyDigest(true)}
+                className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border transition-all hover:bg-black/10 dark:hover:bg-white/10 ${s.sub}`}
+              >
+                Daily Digest
+              </button>
+            </h3>
+            
+            {/* End of Day Report Stats */}
+            <div className={`flex items-center gap-4 p-3 rounded-xl border shadow-sm ${s.card}`}>
+              <div className="flex flex-col text-center px-2">
+                <span className={`text-base font-black leading-none ${s.header}`}>
+                  {patients.filter(p => p.assignedDoctorId === activeDoctorId && (p.status === PatientStatus.CONSULTATION_DONE || p.status === PatientStatus.ADMISSION_DESK || p.status === PatientStatus.WARD_ADMITTED)).length}
+                </span>
+                <span className={`text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Seen</span>
+              </div>
+              <div className="w-px h-8 bg-black/10 dark:bg-white/10"></div>
+              <div className="flex flex-col text-center px-2">
+                <span className="text-base font-black leading-none text-emerald-500">
+                  {patients.filter(p => p.assignedDoctorId === activeDoctorId && (p.status === PatientStatus.ADMISSION_DESK || p.status === PatientStatus.WARD_ADMITTED)).length}
+                </span>
+                <span className={`text-[8px] font-black uppercase tracking-widest text-emerald-500/80`}>IPD Conv.</span>
+              </div>
+            </div>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-60 hover:opacity-100 transition-opacity">
             {patients.filter(p => p.assignedDoctorId === activeDoctorId && (p.status === PatientStatus.CONSULTATION_DONE || p.status === PatientStatus.ADMISSION_DESK || p.status === PatientStatus.WARD_ADMITTED))
               .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
@@ -463,53 +549,8 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
           </div>
         </section>
       </div>
-
-      <div className="space-y-6">
-        <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
-          <h3 className={`text-[10px] font-black uppercase tracking-widest mb-4 opacity-40 ${s.sub}`}>Pipeline</h3>
-          <div className="space-y-2">
-             {waitingHall.slice(0, 4).map(p => (
-               <div key={p.id} className={`p-3 rounded-xl border flex justify-between items-center opacity-70 ${s.btn}`}>
-                  <div className="truncate pr-2">
-                    <p className={`text-xs font-black truncate ${s.header}`}>{p.name}</p>
-                    <p className={`text-[8px] font-black uppercase opacity-40 ${s.sub}`}>Wait {p.id}</p>
-                  </div>
-                  <div className="w-2 h-2 rounded-full bg-slate-400/30 border border-slate-400 animate-pulse shrink-0"></div>
-               </div>
-             ))}
-             {waitingHall.length === 0 && (
-               <p className={`text-[8px] font-black uppercase tracking-widest text-center py-4 opacity-20 ${s.sub}`}>Hall Empty</p>
-             )}
-          </div>
-        </section>
-
-        {message && <div className={`p-4 rounded-2xl text-center text-[10px] font-black border shadow-lg ${s.success}`}>{message}</div>}
-
-        <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
-          <h3 className={`text-[10px] font-black uppercase tracking-widest mb-4 text-red-500`}>MISSED</h3>
-          <div className="space-y-2">
-            {absentList.length > 0 ? absentList.slice(0, 3).map(p => (
-              <div key={p.id} className={`p-3 rounded-xl border flex justify-between items-center ${s.btn}`}>
-                <div className="truncate pr-2">
-                   <span className={`text-xs font-black truncate block ${s.header}`}>{p.name}</span>
-                   <span className={`text-[8px] font-black uppercase opacity-40 block ${s.sub}`}>{p.id}</span>
-                </div>
-                <button 
-                  onClick={() => mockFirestore.prioritizePatient(p.id)}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${s.badge}`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </button>
-              </div>
-            )) : (
-              <p className="text-[8px] font-black uppercase tracking-widest opacity-20 text-center py-4">No Missed</p>
-            )}
-          </div>
-        </section>
-      </div>
     </div>
   );
 };
 
 export default StaffDoctor;
-

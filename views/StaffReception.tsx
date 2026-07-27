@@ -68,9 +68,11 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
   };
 
   const handleProcessPayment = async () => {
-    if (!currentPatient || !selectedDoctorId) return;
+    if (!currentPatient) return;
     await mockFirestore.callPatient(currentPatient.id, PatientStatus.PAYMENT_DONE, patients);
-    await mockFirestore.updatePatient(currentPatient.id, { assignedDoctorId: selectedDoctorId });
+    if (selectedDoctorId) {
+      await mockFirestore.updatePatient(currentPatient.id, { assignedDoctorId: selectedDoctorId });
+    }
     setMessage(`Payment success for ${currentPatient.name}`);
     setSelectedDoctorId('');
     setTimeout(handleCallNext, 500); 
@@ -93,7 +95,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
       <PatientContactModal 
         patient={viewingPatient} 
         onClose={() => setViewingPatient(null)} 
@@ -230,7 +232,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
                   </div>
                   <button 
                     onClick={handleProcessPayment} 
-                    disabled={!selectedDoctorId} 
+                    disabled={doctors.length > 0 && !selectedDoctorId} 
                     className={`w-full py-4 sm:py-5 rounded-2xl font-black transition-all uppercase tracking-[0.3em] text-[10px] sm:text-xs shadow-xl disabled:opacity-50 active:scale-95 ${theme === 'light' ? 'bg-[#0071e3] text-white hover:bg-[#0077ed]' : 'bg-[#0A84FF] text-white hover:bg-[#409fff]'}`}
                   >
                     COMPLETE & CALL NEXT

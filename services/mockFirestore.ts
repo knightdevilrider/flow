@@ -1,4 +1,4 @@
-import { Patient, PatientStatus, PatientCategory, TrackingLog, Bed } from '../types';
+import { Patient, PatientStatus, PatientCategory, TrackingLog, Bed, InventoryItem } from '../types';
 import { db } from '../src/lib/firebase';
 import { 
   collection, 
@@ -60,6 +60,57 @@ export const mockFirestore = {
     return snapshot.docs.map(d => d.data() as Patient);
   },
 
+  onInventorySnapshot: (callback: (data: InventoryItem[]) => void, onError: (err: any) => void) => {
+    if (useLocalStorage) {
+      const refresh = () => {
+        const data = localStorage.getItem('hospital_inventory_demo');
+        callback(data ? JSON.parse(data) : []);
+      };
+      refresh();
+      const interval = setInterval(refresh, 2000);
+      return () => clearInterval(interval);
+    }
+
+    const q = query(collection(db, 'inventory'), orderBy('name', 'asc'));
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ ...d.data() } as InventoryItem));
+      callback(items);
+    }, onError);
+  },
+
+  getInventory: async (): Promise<InventoryItem[]> => {
+    if (useLocalStorage) {
+      const data = localStorage.getItem('hospital_inventory_demo');
+      return data ? JSON.parse(data) : [];
+    }
+    const snapshot = await getDocs(collection(db, 'inventory'));
+    return snapshot.docs.map(d => d.data() as InventoryItem);
+  },
+
+  updateInventoryItem: async (id: string, updates: Partial<InventoryItem>) => {
+    if (useLocalStorage) {
+      const data = localStorage.getItem('hospital_inventory_demo');
+      let inventory: InventoryItem[] = data ? JSON.parse(data) : [];
+      inventory = inventory.map(item => item.id === id ? { ...item, ...updates } : item);
+      localStorage.setItem('hospital_inventory_demo', JSON.stringify(inventory));
+      return;
+    }
+    await updateDoc(doc(db, 'inventory', id), updates);
+  },
+
+  addInventoryItem: async (item: Omit<InventoryItem, 'id'>) => {
+    const id = Math.random().toString(36).substring(2, 15);
+    const fullItem = { ...item, id } as InventoryItem;
+    if (useLocalStorage) {
+      const data = localStorage.getItem('hospital_inventory_demo');
+      let inventory: InventoryItem[] = data ? JSON.parse(data) : [];
+      inventory.push(fullItem);
+      localStorage.setItem('hospital_inventory_demo', JSON.stringify(inventory));
+      return;
+    }
+    await setDoc(doc(db, 'inventory', id), fullItem);
+  },
+
   addPatient: async (patientData: Omit<Patient, 'id' | 'timestamp' | 'history'>) => {
     const id = generatePatientId();
     const now = Date.now();
@@ -77,6 +128,13 @@ export const mockFirestore = {
       localStorage.setItem('hospital_patients_demo', JSON.stringify(patients));
       return patient;
     }
+
+    // Firestore rejects undefined values, so we must remove them
+    Object.keys(patient).forEach(key => {
+      if ((patient as any)[key] === undefined) {
+        delete (patient as any)[key];
+      }
+    });
 
     await setDoc(doc(db, COLLECTION, id), patient);
     return patient;
@@ -100,6 +158,13 @@ export const mockFirestore = {
       console.warn(`Attempted to update non-existent patient: ${id}`);
       return;
     }
+
+    // Firestore rejects undefined values in updates too
+    Object.keys(updates).forEach(key => {
+      if ((updates as any)[key] === undefined) {
+        delete (updates as any)[key];
+      }
+    });
 
     await updateDoc(patientRef, updates as any);
 
@@ -254,6 +319,24 @@ export const mockFirestore = {
 
   seedDemoData: async () => {
     // Basic seeding for local storage if needed
+    if (useLocalStorage) {
+      const existingInventory = localStorage.getItem('hospital_inventory_demo');
+      if (!existingInventory || JSON.parse(existingInventory).length === 0) {
+        const INDIAN_DRUG_INDEX: InventoryItem[] = [
+          { id: '1', name: 'Paracetamol', type: 'Analgesic/Antipyretic', commonDosage: '650mg', quantity: 250, minThreshold: 50 },
+          { id: '2', name: 'Amoxicillin + Clavulanic Acid', type: 'Antibiotic', commonDosage: '625mg', allergyRisk: 'Penicillin', quantity: 15, minThreshold: 20 },
+          { id: '3', name: 'Azithromycin', type: 'Antibiotic', commonDosage: '500mg', quantity: 120, minThreshold: 40 },
+          { id: '4', name: 'Pantoprazole', type: 'Antacid', commonDosage: '40mg', quantity: 300, minThreshold: 50 },
+          { id: '5', name: 'Domperidone + Pantoprazole', type: 'Antiemetic/Antacid', commonDosage: '30mg/40mg', quantity: 180, minThreshold: 50 },
+          { id: '6', name: 'Metformin', type: 'Antidiabetic', commonDosage: '500mg', quantity: 80, minThreshold: 100 },
+          { id: '7', name: 'Telmisartan', type: 'Antihypertensive', commonDosage: '40mg', quantity: 0, minThreshold: 50 },
+          { id: '8', name: 'Amlodipine', type: 'Antihypertensive', commonDosage: '5mg', quantity: 200, minThreshold: 50 },
+          { id: '9', name: 'Levocetirizine', type: 'Antihistamine', commonDosage: '5mg', quantity: 45, minThreshold: 50 },
+          { id: '10', name: 'Ibuprofen + Paracetamol', type: 'NSAID', commonDosage: '400mg/325mg', quantity: 110, minThreshold: 50 },
+        ];
+        localStorage.setItem('hospital_inventory_demo', JSON.stringify(INDIAN_DRUG_INDEX));
+      }
+    }
   },
 
   // Helpers for clinical views

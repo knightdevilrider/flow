@@ -7,7 +7,12 @@ import {
   addDoc, 
   deleteDoc, 
   doc, 
-  updateDoc 
+  updateDoc,
+  query,
+  limit,
+  where,
+  onSnapshot,
+  orderBy
 } from 'firebase/firestore';
 import { db } from '../src/lib/firebase';
 import { mockFirestore } from '../services/mockFirestore';
@@ -15,6 +20,7 @@ import DoctorTable from '../components/admin/DoctorTable';
 import DoctorFormModal from '../components/admin/DoctorFormModal';
 import PatientTable from '../components/admin/PatientTable';
 import HistoryLogTable from '../components/admin/HistoryLogTable';
+import DutyRoster from '../components/admin/DutyRoster';
 import GlobalTATMetrics from '../components/admin/GlobalTATMetrics';
 import PatientTimelineModal from '../components/admin/PatientTimelineModal';
 import PatientFormModal from '../components/admin/PatientFormModal';
@@ -32,7 +38,8 @@ import {
   Zap,
   Activity,
   History,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Search
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -80,6 +87,26 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   const [newWard, setNewWard] = useState({ name: '', type: 'GENERAL' as any, capacity: 20 });
   const [newRoster, setNewRoster] = useState({ doctorId: '', shift: 'MORNING' as Shift, room: '' });
   const [newScheme, setNewScheme] = useState({ name: '', discount: 0, tax: 0, limit: 100000 });
+
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  const [localPatients, setLocalPatients] = useState<Patient[]>(patients);
+
+  React.useEffect(() => {
+    if (patientSearchQuery.trim().length > 0) {
+      const qPatients = query(
+        collection(db, 'patients'), 
+        where('name', '>=', patientSearchQuery),
+        where('name', '<=', patientSearchQuery + '\uf8ff'),
+        limit(100)
+      );
+      const unsubPatients = onSnapshot(qPatients, (snap) => {
+        setLocalPatients(snap.docs.map(d => ({ id: d.id, ...d.data() } as Patient)).filter(p => !p.isDeleted));
+      });
+      return () => unsubPatients();
+    } else {
+      setLocalPatients(patients);
+    }
+  }, [patientSearchQuery, patients]);
 
   const themeStyles = {
     light: {
@@ -319,8 +346,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 Register Patient
               </button>
             </div>
+            <div className={`p-4 rounded-3xl border ${s.card} flex items-center gap-3`}>
+              <Search className={`w-5 h-5 ${s.sub}`} />
+              <input 
+                type="text" 
+                placeholder="Search million+ database by patient name..." 
+                value={patientSearchQuery}
+                onChange={e => setPatientSearchQuery(e.target.value)}
+                className={`flex-1 bg-transparent border-none outline-none font-bold tracking-wide ${s.text}`}
+              />
+              {patientSearchQuery && (
+                <div className="text-[10px] font-black uppercase text-blue-500 animate-pulse">
+                  Searching Live Database...
+                </div>
+              )}
+            </div>
             <PatientTable 
-              patients={patients}
+              patients={localPatients}
               onPatientClick={handlePatientClick}
               theme={theme}
             />
@@ -441,6 +483,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                   </div>
                 </div>
+              )}
+              
+              {staffSubTab === 'duty_list' && (
+                <DutyRoster staff={staff} theme={theme} />
               )}
             </div>
           </div>
@@ -736,7 +782,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
         )}
-
         {activeTab === 'SYSTEM' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10">
             <div className="space-y-6 sm:space-y-10">

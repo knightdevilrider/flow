@@ -10,9 +10,10 @@ interface MainDashboardProps {
   theme: Theme;
   onThemeToggle: () => void;
   onSettings: () => void;
+  isAdmin?: boolean;
 }
 
-const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, theme, onThemeToggle, onSettings }) => {
+const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, theme, onThemeToggle, onSettings, isAdmin }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const getCount = (status: PatientStatus | PatientStatus[]) => {
     if (Array.isArray(status)) {
@@ -106,7 +107,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
   };
 
   return (
-    <div className="w-full px-2 sm:px-4 md:px-6 pb-20 pt-2 flex flex-col items-center relative">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 pb-20 pt-2 flex flex-col items-center relative">
       {/* Mobile Top Bar */}
       <div className={`sm:hidden absolute top-0 left-0 right-0 z-[60] h-16 flex items-center justify-between px-6 backdrop-blur-md shadow-lg ${s.mobileBar}`}>
         <button 
@@ -258,12 +259,13 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
               { role: UserRole.GATE, label: 'Gate Security' },
               { role: UserRole.RECEPTION, label: 'Admission Desk' },
               { role: UserRole.CHECKIN, label: 'Check In' },
-              { role: UserRole.DOCTOR, label: 'Clinical Review' },
-              { role: UserRole.MEDICAL, label: 'Pharmacy Intake' },
+              { role: UserRole.DOCTOR, label: 'Doctor Portal' },
+              { role: UserRole.MEDICAL, label: 'Treatment Station' },
+              { role: UserRole.PHARMACY, label: 'Pharmacy & Billing' },
               { role: UserRole.WARD_CARE, label: 'Ward Management' },
               { role: UserRole.BILLING, label: 'Discharge Desk' },
               { role: UserRole.VISITOR_MGMT, label: 'Visitor Control' },
-              { role: UserRole.ADMIN, label: 'Admin Console' },
+              ...(isAdmin ? [{ role: UserRole.ADMIN, label: 'Admin Console' }] : []),
             ].map((btn) => (
               <button 
                 key={btn.role}

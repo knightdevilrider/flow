@@ -34,6 +34,16 @@ export enum PatientCategory {
 
 export type Section = 'A' | 'B' | 'C';
 
+export interface InventoryItem {
+  id: string;
+  name: string;
+  type: string;
+  commonDosage: string;
+  allergyRisk?: string;
+  quantity: number;
+  minThreshold: number;
+}
+
 export interface TrackingLog {
   stage: PatientStatus;
   entryTime: number; // Milestone Start / Queue Entry
@@ -103,6 +113,7 @@ export interface Patient {
   };
   
   // Identity Fields
+  authorName?: string;
   idType?: string;
   idNumber?: string;
   age?: string;
@@ -120,13 +131,20 @@ export interface Patient {
   tpaPreAuthTime?: number;
   tpaApprovalTime?: number;
   
-  // NABH Compliance
+  // NABH Compliance & Vitals
   isRedChannelBypass?: boolean;
   bypassJustification?: string;
   triageUrgency?: 'Red_Critical' | 'Yellow_Urgent' | 'Green_Routine';
   triageHighRiskAlert?: boolean;
   nabhPainAssessmentDone?: boolean;
   nabhInitialAssessmentTimeMins?: number;
+  
+  // Vitals
+  temperature?: string;
+  bloodPressure?: string;
+  pulse?: string;
+  weight?: string;
+  spo2?: string;
 
   // Cross Consultation
   crossConsultTriggered?: boolean;
@@ -180,6 +198,7 @@ export interface Patient {
   
   // Clinical workflow additions
   prescription?: string;
+  prescribedDrugs?: any[];
   checkinSection?: string;
   directive?: string;
   
@@ -246,6 +265,8 @@ export interface StaffMember {
   employeeId: string;
   contactNumber?: string;
   department?: string;
+  supervisorId?: string; // Links this staff to a SUPERVISOR
+  currentShift?: Shift; // Added for duty roster drag and drop
 }
 
 export interface ShiftRotation {
@@ -335,13 +356,15 @@ export enum UserRole {
   RECEPTION = 'reception', // Admission Desk
   CHECKIN = 'checkin',
   DOCTOR = 'doctor',
-  MEDICAL = 'medical',
+  MEDICAL = 'medical', // Treatment Station
+  PHARMACY = 'pharmacy', // Pharmacy & Billing
   WARD_CARE = 'ward_care', // Bed management, Dietary
   BILLING = 'billing', // Discharge lounge
   VISITOR_MGMT = 'visitor_mgmt',
   ATTENDANT_MGMT = 'attendant_mgmt',
   PUBLIC = 'public',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  SUPERVISOR = 'supervisor'
 }
 
 export type Theme = 'light' | 'dark' | 'titanium';

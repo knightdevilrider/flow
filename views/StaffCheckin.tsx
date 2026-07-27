@@ -103,7 +103,7 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
       <div className="lg:col-span-2 space-y-6 sm:space-y-10">
         <section className={`p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border shadow-2xl relative overflow-hidden ${s.card}`}>
           <div className={`absolute top-0 right-0 px-8 py-3 text-[10px] font-black uppercase tracking-widest rounded-bl-[2rem] shadow-inner ${theme === 'light' ? 'bg-[#F5F5F7] text-[#86868b]' : 'bg-[#2D2D2D] text-[#86868b]'}`}>Check In Control</div>

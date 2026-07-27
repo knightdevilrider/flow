@@ -82,7 +82,7 @@ const StaffWardCare: React.FC<StaffWardCareProps> = ({ patients, theme, isAdmin,
   const ipdPatients = patients.filter(p => [PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED].includes(p.status));
 
   return (
-    <div className="space-y-6">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 space-y-6">
       <PatientContactModal 
         patient={viewingPatient} 
         onClose={() => setViewingPatient(null)} 
@@ -184,7 +184,7 @@ const StaffWardCare: React.FC<StaffWardCareProps> = ({ patients, theme, isAdmin,
               <div className="text-4xl">💊</div>
               <h3 className={`text-xl font-black uppercase tracking-tight ${s.header}`}>MEDICATION LOG</h3>
             </div>
-            <div className="space-y-6">
+            <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 space-y-6">
               <div className="space-y-2">
                 <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Authority ID</label>
                 <select 

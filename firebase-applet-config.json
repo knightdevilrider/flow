@@ -1,11 +1,9 @@
 {
-  "projectId": "gen-lang-client-0870785730",
-  "appId": "1:947947688564:web:24a04356c696d33dea3721",
-  "apiKey": "AIzaSyB4XHvVFhY6jT4t9rz7n9YxPxL34t-Y4eA",
-  "authDomain": "gen-lang-client-0870785730.firebaseapp.com",
-  "storageBucket": "gen-lang-client-0870785730.firebasestorage.app",
-  "messagingSenderId": "947947688564",
-  "measurementId": "",
-  "oAuthClientId": "947947688564-i6tc66fmuabc3o6pqeqpt2hu1ijrljcq.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "apiKey": "AIzaSyAPPQLu2BpS1YvQX04zB44Y8cXGULcGaA4",
+  "authDomain": "hospital-patinece-flow.firebaseapp.com",
+  "databaseURL": "https://hospital-patinece-flow-default-rtdb.firebaseio.com",
+  "projectId": "hospital-patinece-flow",
+  "storageBucket": "hospital-patinece-flow.firebasestorage.app",
+  "messagingSenderId": "611827138268",
+  "appId": "1:611827138268:web:b1f23f90d298b9c82a7e19"
 }

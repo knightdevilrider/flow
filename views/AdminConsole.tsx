@@ -16,7 +16,8 @@ import {
   List,
   ChevronRight,
   ClipboardList,
-  UserCog
+  UserCog,
+  ShieldAlert
 } from 'lucide-react';
 import { 
   Patient, 
@@ -40,12 +41,14 @@ import {
   updateDoc,
   query,
   orderBy,
-  limit
+  limit,
+  where
 } from 'firebase/firestore';
 import PatientTable from '../components/admin/PatientTable';
 import PatientFormModal from '../components/admin/PatientFormModal';
 import PatientTimelineModal from '../components/admin/PatientTimelineModal';
 import DeletePatientModal from '../components/admin/DeletePatientModal';
+import RosterManager from './RosterManager';
 
 interface AdminConsoleProps {
   theme: Theme;
@@ -86,16 +89,34 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
   // Form States
   const [staffForm, setStaffForm] = useState<Partial<StaffMember>>({ name: '', employeeId: '', role: UserRole.RECEPTION });
   const [rosterForm, setRosterForm] = useState<Partial<ShiftRotation>>({ staffId: '', dayOfWeek: 1, shift: 'MORNING', roomNumber: '' });
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
 
+  // Fetch Patients (Dynamic based on search)
   useEffect(() => {
-    const qPatients = query(collection(db, 'patients'), orderBy('timestamp', 'desc'), limit(100));
-    const qDoctors = query(collection(db, 'doctors'), orderBy('name'));
-    const qStaff = query(collection(db, 'staff'), orderBy('name'));
-    const qRoster = query(collection(db, 'roster'));
-
+    let qPatients;
+    if (patientSearchQuery.trim().length > 0) {
+      qPatients = query(
+        collection(db, 'patients'), 
+        where('name', '>=', patientSearchQuery),
+        where('name', '<=', patientSearchQuery + '\uf8ff'),
+        limit(100)
+      );
+    } else {
+      qPatients = query(collection(db, 'patients'), orderBy('timestamp', 'desc'), limit(500));
+    }
+    
     const unsubPatients = onSnapshot(qPatients, (snap) => {
       setPatients(snap.docs.map(d => ({ id: d.id, ...d.data() } as Patient)).filter(p => !p.isDeleted));
     });
+
+    return () => unsubPatients();
+  }, [patientSearchQuery]);
+
+  // Fetch Static Data (Doctors, Staff, Roster)
+  useEffect(() => {
+    const qDoctors = query(collection(db, 'doctors'), orderBy('name'));
+    const qStaff = query(collection(db, 'staff'), orderBy('name'));
+    const qRoster = query(collection(db, 'roster'));
 
     const unsubDoctors = onSnapshot(qDoctors, (snap) => {
       setDoctors(snap.docs.map(d => ({ id: d.id, ...d.data() } as Doctor)));
@@ -111,7 +132,6 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
 
     setLoading(false);
     return () => {
-      unsubPatients();
       unsubDoctors();
       unsubStaff();
       unsubRoster();
@@ -308,7 +328,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
   };
 
   return (
-    <div className={`flex-1 overflow-y-auto ${s.bg} p-6 sm:p-10 font-sans`}>
+    <div className={`flex-1 overflow-y-auto \${s.bg} w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-10 font-sans`}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
         <div>
@@ -412,11 +432,28 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
               )}
 
               {staffSubTab === 'patients' && (
-                <PatientTable 
-                  patients={patients}
-                  onPatientClick={handlePatientClick}
-                  theme={theme}
-                />
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-3xl border ${s.card} flex items-center gap-3`}>
+                    <Search className={`w-5 h-5 ${s.sub}`} />
+                    <input 
+                      type="text" 
+                      placeholder="Search million+ database by patient name..." 
+                      value={patientSearchQuery}
+                      onChange={e => setPatientSearchQuery(e.target.value)}
+                      className={`flex-1 bg-transparent border-none outline-none font-bold tracking-wide ${s.text}`}
+                    />
+                    {patientSearchQuery && (
+                      <div className="text-[10px] font-black uppercase text-blue-500 animate-pulse">
+                        Searching Live Database...
+                      </div>
+                    )}
+                  </div>
+                  <PatientTable 
+                    patients={patients}
+                    onPatientClick={handlePatientClick}
+                    theme={theme}
+                  />
+                </div>
               )}
 
               {staffSubTab === 'staff_list' && (
@@ -570,88 +607,25 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
             </div>
           </div>
         )}
-
         {/* Global Roster Main View */}
         {activeTab === 'roster' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div className="lg:col-span-4">
-              <div className={`p-8 rounded-[2.5rem] border ${s.card} shadow-2xl`}>
-                <form onSubmit={handleAddRoster} className="space-y-5">
-                  <h2 className={`text-xl font-black uppercase tracking-tight mb-4 ${s.text}`}>Assign Shift</h2>
-                  <select
-                    required value={rosterForm.staffId}
-                    onChange={e => setRosterForm({...rosterForm, staffId: e.target.value})}
-                    className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
-                  >
-                    <option value="" className="bg-[#1C1C1E] text-white">Select Personnel</option>
-                    <optgroup label="Doctors" className="bg-[#1C1C1E] text-[#8E8E93]">
-                      {doctors.map(d => <option key={d.id} value={d.id} className="bg-[#1C1C1E] text-white">{d.name}</option>)}
-                    </optgroup>
-                    <optgroup label="Staff" className="bg-[#1C1C1E] text-[#8E8E93]">
-                      {staff.map(st => <option key={st.id} value={st.id} className="bg-[#1C1C1E] text-white">{st.name}</option>)}
-                    </optgroup>
-                  </select>
-                  <div className="grid grid-cols-2 gap-4">
-                    <select
-                      value={rosterForm.dayOfWeek}
-                      onChange={e => setRosterForm({...rosterForm, dayOfWeek: parseInt(e.target.value)})}
-                      className={`px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
-                    >
-                      {DAYS.map((day, i) => <option key={day} value={i}>{day}</option>)}
-                    </select>
-                    <select
-                      value={rosterForm.shift}
-                      onChange={e => setRosterForm({...rosterForm, shift: e.target.value as Shift})}
-                      className={`px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
-                    >
-                      {SHIFTS.map(shift => <option key={shift} value={shift}>{shift}</option>)}
-                    </select>
-                  </div>
-                  <input
-                    type="text" placeholder="Location/Room"
-                    value={rosterForm.roomNumber} onChange={e => setRosterForm({...rosterForm, roomNumber: e.target.value})}
-                    className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
-                  />
-                  <button type="submit" className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl bg-orange-600 text-white`}>
-                    Update Rota
-                  </button>
-                </form>
-              </div>
-            </div>
-            <div className="lg:col-span-8">
-              <div className={`rounded-[2.5rem] border ${s.card} overflow-hidden shadow-xl`}>
-                <div className="overflow-x-auto max-h-[600px]">
-                  <table className="w-full text-left">
-                    <thead className={s.tableHeader}>
-                      <tr>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Personnel</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Day / Shift</th>
-                        <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest">Location</th>
-                        <th className="px-6 py-4"></th>
-                      </tr>
-                    </thead>
-                    <tbody className={`divide-y divide-white/5 ${s.text}`}>
-                      {rotations.map(rot => {
-                        const p = doctors.find(d => d.id === rot.staffId) || staff.find(st => st.id === rot.staffId);
-                        return (
-                          <tr key={rot.id} className="hover:bg-white/5 transition-colors">
-                            <td className="px-6 py-4 font-bold">{p?.name || 'Unknown'}</td>
-                            <td className="px-6 py-4 text-[10px] opacity-70 uppercase font-black">{DAYS[rot.dayOfWeek]} • {rot.shift}</td>
-                            <td className="px-6 py-4 font-mono text-xs">{rot.roomNumber || '-'}</td>
-                            <td className="px-6 py-4 text-right">
-                              <button onClick={() => handleDelete('roster', rot.id)} className="text-red-500/50 hover:text-red-500">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+          <RosterManager 
+            staffList={[...doctors, ...staff] as any[]} 
+            rotations={rotations}
+            onAssignShift={async (staffId, dayOfWeek, shift) => {
+              await addDoc(collection(db, 'roster'), {
+                staffId,
+                dayOfWeek,
+                shift,
+                updatedAt: Date.now()
+              });
+            }}
+            onRemoveShift={async (rotationId) => {
+              await deleteDoc(doc(db, 'roster', rotationId));
+            }}
+            theme={theme}
+            isAdmin={isAdmin}
+          />
         )}
 
         {/* System Access Main View */}

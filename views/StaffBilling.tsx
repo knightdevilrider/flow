@@ -151,7 +151,7 @@ const StaffBilling: React.FC<StaffBillingProps> = ({ patients, theme, isAdmin, o
   const exitingPatients = patients.filter(p => p.status === PatientStatus.DISCHARGED);
 
   return (
-    <div className="space-y-6">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 space-y-6">
       <PatientContactModal 
         patient={viewingPatient} 
         onClose={() => setViewingPatient(null)} 
@@ -337,7 +337,7 @@ const StaffBilling: React.FC<StaffBillingProps> = ({ patients, theme, isAdmin, o
       )}
 
       {activeTab === 'EXIT_SENSORS' && (
-        <div className="space-y-6">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 space-y-6">
           <section className={`p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border shadow-xl relative overflow-hidden ${s.card}`}>
             <div className="flex justify-between items-center mb-8">
               <div>

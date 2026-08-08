@@ -49,12 +49,16 @@ const PatientTimelineModal: React.FC<PatientTimelineModalProps> = ({ patient, th
 
   const formatTime = (ts?: number) => {
     if (!ts) return '--:--';
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '--:--';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const formatDuration = (start: number, end?: number) => {
+  const formatDuration = (start?: number, end?: number) => {
+    if (!start) return '--';
     if (!end) return 'Ongoing';
     const diffMins = Math.floor((end - start) / 60000);
+    if (isNaN(diffMins)) return '--';
     if (diffMins < 1) return '< 1 min';
     return `${diffMins} min`;
   };
@@ -172,10 +176,11 @@ const PatientTimelineModal: React.FC<PatientTimelineModalProps> = ({ patient, th
             <h3 className={`text-xs font-black uppercase tracking-widest mb-6 ${s.sub}`}>Journey Timeline</h3>
             
             <div className="relative pl-6 border-l-2 border-dashed space-y-8" style={{ borderColor: 'rgba(150, 150, 150, 0.2)' }}>
-              {(!patient.history || patient.history.length === 0) ? (
+              {(!patient.history || !Array.isArray(patient.history) || patient.history.length === 0) ? (
                 <p className={`text-sm font-bold ${s.sub}`}>No history recorded.</p>
               ) : (
                 patient.history.map((log: TrackingLog, idx: number) => {
+                  if (!log) return null;
                   const isLast = idx === patient.history.length - 1;
                   return (
                     <div key={idx} className="relative">

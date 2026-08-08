@@ -44,11 +44,13 @@ import {
   limit,
   where
 } from 'firebase/firestore';
+import { DutyRoster } from '../components/admin/DutyRoster';
+import RosterManager from './RosterManager';
+import { SupervisorRoster } from '../components/admin/SupervisorRoster';
 import PatientTable from '../components/admin/PatientTable';
 import PatientFormModal from '../components/admin/PatientFormModal';
 import PatientTimelineModal from '../components/admin/PatientTimelineModal';
 import DeletePatientModal from '../components/admin/DeletePatientModal';
-import RosterManager from './RosterManager';
 
 interface AdminConsoleProps {
   theme: Theme;
@@ -65,9 +67,13 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
   doctors: initialDoctors, 
   staff: initialStaff, 
   rotations: initialRotations,
-  isAdmin
+  isAdmin,
+  customRoles = [],
+  setCustomRoles,
+  customShifts = [],
+  setCustomShifts
 }) => {
-  const [activeTab, setActiveTab] = useState<'staff' | 'roster' | 'system'>('staff');
+  const [activeTab, setActiveTab] = useState<'staff' | 'roster' | 'auto-roster' | 'system'>('staff');
   const [staffSubTab, setStaffSubTab] = useState<StaffSubTab>('doctors');
   
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -90,6 +96,10 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
   const [staffForm, setStaffForm] = useState<Partial<StaffMember>>({ name: '', employeeId: '', role: UserRole.RECEPTION });
   const [rosterForm, setRosterForm] = useState<Partial<ShiftRotation>>({ staffId: '', dayOfWeek: 1, shift: 'MORNING', roomNumber: '' });
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  
+  // Custom Role State
+  const [isAddingCustomRole, setIsAddingCustomRole] = useState(false);
+  const [newCustomRoleName, setNewCustomRoleName] = useState('');
 
   // Fetch Patients (Dynamic based on search)
   useEffect(() => {
@@ -288,6 +298,29 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
     }
   };
 
+  const handleAddCustomRole = () => {
+    if (newCustomRoleName.trim() && setCustomRoles) {
+      const newRole: CustomRole = {
+        id: `custom_${Date.now()}`,
+        name: newCustomRoleName.trim(),
+        createdAt: Date.now()
+      };
+      setCustomRoles([...customRoles, newRole]);
+      setStaffForm({...staffForm, role: newRole.id});
+      setNewCustomRoleName('');
+      setIsAddingCustomRole(false);
+    }
+  };
+
+  const handleRemoveCustomRole = (roleId: string) => {
+    if (setCustomRoles) {
+      setCustomRoles(customRoles.filter(r => r.id !== roleId));
+      if (staffForm.role === roleId) {
+        setStaffForm({...staffForm, role: UserRole.UNASSIGNED});
+      }
+    }
+  };
+
   const themeStyles = {
     dark: {
       bg: 'bg-[#0A0A0B]',
@@ -317,7 +350,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
 
   const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const SHIFTS: Shift[] = ['MORNING', 'EVENING', 'NIGHT'];
-  const ROLES = Object.values(UserRole).filter(r => r !== UserRole.PUBLIC);
+  
 
   const getStaffByRole = (role: UserRole) => {
     const list = staff.filter(st => st.role === role);
@@ -344,6 +377,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
           {[
             { id: 'staff', label: 'Operations & Staff', icon: Users },
             { id: 'roster', label: 'Global Roster', icon: Calendar },
+            { id: 'auto-roster', label: 'Auto Scheduler', icon: Clock },
             { id: 'system', label: 'System Access', icon: UserCog }
           ].map(tab => (
             <button
@@ -473,13 +507,75 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
                             value={staffForm.employeeId} onChange={e => setStaffForm({...staffForm, employeeId: e.target.value})}
                             className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
                           />
-                          <select
-                            value={staffForm.role}
-                            onChange={e => setStaffForm({...staffForm, role: e.target.value as UserRole})}
-                            className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
-                          >
-                            {ROLES.map(role => <option key={role} value={role} className="bg-[#1C1C1E] text-white">{role.toUpperCase()}</option>)}
-                          </select>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              <select
+                                value={staffForm.role || 'unassigned'}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === 'add_new') {
+                                    setIsAddingCustomRole(true);
+                                  } else {
+                                    setStaffForm({...staffForm, role: val});
+                                  }
+                                }}
+                                className={`flex-1 px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                              >
+                                <option value="unassigned" className="bg-[#1C1C1E] text-white">UNASSIGNED</option>
+                                {ROLE_CATEGORIES.map(category => (
+                                  <optgroup key={category.label} label={category.label} className="bg-[#2C2C2E] text-white/50 font-bold">
+                                    {category.roles.map(role => (
+                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                                    ))}
+                                  </optgroup>
+                                ))}
+                                {customRoles.length > 0 && (
+                                  <optgroup label="Custom Roles" className="bg-[#2C2C2E] text-white/50 font-bold">
+                                    {customRoles.map(role => (
+                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                <option value="add_new" className="bg-[#3A3A3C] text-blue-400 font-bold">+ ADD NEW ROLE</option>
+                              </select>
+                              {customRoles.find(r => r.id === staffForm.role) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCustomRole(staffForm.role as string)}
+                                  className="p-4 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                  title="Remove Custom Role"
+                                >
+                                  <Trash2 className="w-6 h-6" />
+                                </button>
+                              )}
+                            </div>
+                            {isAddingCustomRole && (
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Enter Custom Role Name"
+                                  value={newCustomRoleName}
+                                  onChange={e => setNewCustomRoleName(e.target.value)}
+                                  className={`flex-1 px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleAddCustomRole}
+                                  className="px-6 py-4 rounded-2xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-colors"
+                                >
+                                  Add
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setIsAddingCustomRole(false); setNewCustomRoleName(''); }}
+                                  className="px-6 py-4 rounded-2xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <button type="submit" className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl bg-indigo-600 text-white`}>
                           Add Staff Member
@@ -625,6 +721,14 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
             }}
             theme={theme}
             isAdmin={isAdmin}
+          />
+        )}
+
+        {/* Auto Scheduler Main View */}
+        {activeTab === 'auto-roster' && (
+          <SupervisorRoster
+            staffList={[...doctors, ...staff] as any[]}
+            shifts={customShifts}
           />
         )}
 

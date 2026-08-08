@@ -274,7 +274,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
       />
       
       {/* Sidebar Queue (1 col) */}
-      <div className="hidden lg:block lg:col-span-1">
+      <div className="lg:col-span-1 order-last lg:order-first mt-8 lg:mt-0">
         <DoctorPatientQueue 
           innerQueue={innerQueue}
           waitingHall={waitingHall}

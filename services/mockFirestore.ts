@@ -28,6 +28,23 @@ const generatePatientId = (): string => {
 
 let useLocalStorage = false;
 
+const sanitizePatient = (p: any): Patient => ({
+  ...p,
+  name: String(p.name || 'Unknown Patient'),
+  id: String(p.id || Math.random().toString(36).substring(2, 10)),
+  status: String(p.status || 'gate_registered') as PatientStatus,
+  category: String(p.category || 'General') as PatientCategory,
+  gender: String(p.gender || 'Unknown'),
+  idNumber: String(p.idNumber || '0000'),
+  age: String(p.age || '0'),
+  contactNumber: String(p.contactNumber || '0000000000'),
+  bloodGroup: p.bloodGroup ? String(p.bloodGroup) : undefined,
+  allergies: p.allergies ? String(p.allergies) : undefined,
+  chronicConditions: p.chronicConditions ? String(p.chronicConditions) : undefined,
+  timestamp: Number(p.timestamp || Date.now()) || Date.now(),
+  history: Array.isArray(p.history) ? p.history : [],
+});
+
 export const mockFirestore = {
   setUseLocalStorage: (val: boolean) => {
     useLocalStorage = val;
@@ -37,7 +54,8 @@ export const mockFirestore = {
     if (useLocalStorage) {
       const refresh = () => {
         const data = localStorage.getItem('hospital_patients_demo');
-        callback(data ? JSON.parse(data) : []);
+        const parsed = data ? JSON.parse(data) : [];
+        callback(parsed.map(sanitizePatient));
       };
       refresh();
       const interval = setInterval(refresh, 2000);
@@ -46,7 +64,7 @@ export const mockFirestore = {
 
     const q = query(collection(db, COLLECTION), orderBy('timestamp', 'desc'));
     return onSnapshot(q, (snapshot) => {
-      const patients = snapshot.docs.map(d => ({ ...d.data() } as Patient));
+      const patients = snapshot.docs.map(d => sanitizePatient({ ...d.data() }));
       callback(patients);
     }, onError);
   },
@@ -54,10 +72,11 @@ export const mockFirestore = {
   getPatients: async (): Promise<Patient[]> => {
     if (useLocalStorage) {
       const data = localStorage.getItem('hospital_patients_demo');
-      return data ? JSON.parse(data) : [];
+      const parsed = data ? JSON.parse(data) : [];
+      return parsed.map(sanitizePatient);
     }
     const snapshot = await getDocs(collection(db, COLLECTION));
-    return snapshot.docs.map(d => d.data() as Patient);
+    return snapshot.docs.map(d => sanitizePatient(d.data()));
   },
 
   onInventorySnapshot: (callback: (data: InventoryItem[]) => void, onError: (err: any) => void) => {
@@ -359,5 +378,74 @@ export const mockFirestore = {
 
   prioritizePatient: async (id: string) => {
     await mockFirestore.updatePatient(id, { isPriority: true, isAbsent: false });
+  },
+
+  simulateStressTest: async (count: number) => {
+    if (useLocalStorage) {
+      const statuses = [
+        PatientStatus.GATE_REGISTERED, 
+        PatientStatus.RECEPTION_WAITING, 
+        PatientStatus.PAYMENT_DONE,
+        PatientStatus.CHECKIN_WAITING,
+        PatientStatus.DOCTOR_WAITING,
+        PatientStatus.CONSULTATION_DONE,
+        PatientStatus.MEDICINE_WAITING
+      ];
+      
+      const newPatients = [];
+      const now = Date.now();
+      
+      for (let i = 0; i < count; i++) {
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+        const id = `SIM-${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`;
+        
+        newPatients.push({
+          id,
+          name: `Sim Patient ${i + 1}`,
+          gender: Math.random() > 0.5 ? 'M' : 'F',
+          age: Math.floor(Math.random() * 80) + 1,
+          phone: '9999999999',
+          timestamp: now - Math.floor(Math.random() * 10000000), // Randomize slightly so they sort correctly
+          status: randomStatus,
+          history: [{ stage: randomStatus, entryTime: now, authorId: 'SIMULATOR' }],
+          publicDisplayConsent: true,
+          photo: `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`
+        });
+      }
+
+      const existingData = localStorage.getItem('hospital_patients_demo');
+      const existingPatients = existingData ? JSON.parse(existingData) : [];
+      
+      localStorage.setItem('hospital_patients_demo', JSON.stringify([...existingPatients, ...newPatients]));
+    }
+  },
+
+  purgeToColdStorage: async () => {
+    if (useLocalStorage) {
+      const existingData = localStorage.getItem('hospital_patients_demo');
+      if (!existingData) return;
+      
+      let patients = JSON.parse(existingData);
+      const coldStorageData = localStorage.getItem('hospital_cold_storage') || '[]';
+      const coldStorage = JSON.parse(coldStorageData);
+      
+      // Filter out COMPLETED or DISCHARGED patients, and drop their photo to save space
+      const toArchive = patients.filter((p: any) => p.status === PatientStatus.COMPLETED || p.status === PatientStatus.DISCHARGED);
+      const toKeep = patients.filter((p: any) => p.status !== PatientStatus.COMPLETED && p.status !== PatientStatus.DISCHARGED);
+      
+      const archivedWithDroppedPhotos = toArchive.map((p: any) => ({
+        ...p,
+        photo: p.photo ? 'URL_STORED_IN_CLOUD' : null // Free up huge base64 memory
+      }));
+
+      localStorage.setItem('hospital_cold_storage', JSON.stringify([...coldStorage, ...archivedWithDroppedPhotos]));
+      localStorage.setItem('hospital_patients_demo', JSON.stringify(toKeep));
+      
+      // Notify listeners
+      const listeners = (window as any).firestoreListeners || [];
+      listeners.forEach((l: any) => l(toKeep));
+      
+      return toArchive.length;
+    }
   }
 };

@@ -51,7 +51,7 @@ const DoctorPatientQueue: React.FC<DoctorPatientQueueProps> = ({
       </div>
       <div className="flex items-center justify-between opacity-60">
         <span className={`text-[9px] font-bold uppercase tracking-widest ${s.sub}`}>
-          {p.idNumber.slice(-4) || 'ID N/A'} • {p.age} {p.gender[0]}
+          {(p.idNumber || '').slice(-4) || 'ID N/A'} • {p.age || 'N/A'} {(p.gender || 'U')[0]}
         </span>
         <div className="flex items-center gap-1.5">
           <div className={`w-1.5 h-1.5 rounded-full ${

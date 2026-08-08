@@ -101,9 +101,9 @@ const Layout: React.FC<LayoutProps> = ({
 
             {/* Center */}
             <div className="flex flex-col items-center text-center">
-              <span className={`hidden sm:block text-[9px] font-black uppercase tracking-[0.3em] mb-0.5 opacity-40 ${s.text}`}>
-                Clinic Flow Pro
-              </span>
+              <div className={`hidden sm:block text-[9px] font-black uppercase tracking-[0.3em] mb-0.5 ${s.text}`}>
+                <span className="opacity-40">Hospital</span><span className={s.accent}>Flow</span>
+              </div>
               <h1 className={`text-lg font-bold tracking-tight transition-all ${s.text}`}>
                 {title}
               </h1>

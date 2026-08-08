@@ -66,13 +66,14 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
 
   const currentPatient = patients.find(p => allowedStatusesForStation.includes(p.status));
   
-  const queue = patients.filter(p => !p.isAbsent && allowedStatusesForStation.includes(p.status));
-  const absentList = patients.filter(p => p.isAbsent && allowedStatusesForStation.includes(p.status));
+  const queue = patients.filter(p => !p.isAbsent && p.status === PatientStatus.CONSULTATION_DONE);
+  const absentList = patients.filter(p => p.isAbsent && p.status === PatientStatus.CONSULTATION_DONE);
+  const isProcessingAutoCall = React.useRef(false);
 
   React.useEffect(() => {
     // Reset state when patient changes
     if (currentPatient) {
-      setPrescribedCount(0); // This could be populated automatically if prescribedDrugs array exists
+      setPrescribedCount(0);
       setDispensedCount(0);
       setIsStockOut(false);
       setIsSubstitution(false);
@@ -80,6 +81,26 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
       setIsPaid(false);
     }
   }, [currentPatient?.id]);
+
+  React.useEffect(() => {
+    if (!currentPatient && queue.length > 0 && !isProcessingAutoCall.current) {
+      const autoIntake = async () => {
+        isProcessingAutoCall.current = true;
+        const next = queue[0];
+        try {
+          setMessage(`Auto-Calling: ${next.name}`);
+          await mockFirestore.callPatient(next.id, PatientStatus.MEDICINE_WAITING, patients);
+          setTimeout(() => {
+            isProcessingAutoCall.current = false;
+            setMessage('');
+          }, 1500);
+        } catch (err) {
+          isProcessingAutoCall.current = false;
+        }
+      };
+      autoIntake();
+    }
+  }, [patients, currentPatient, queue]);
 
   const handleCallNext = async () => {
     // Look for someone in CONSULTATION_DONE (who needs medicine) or checkin queue

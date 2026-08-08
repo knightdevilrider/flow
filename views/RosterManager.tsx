@@ -3,7 +3,7 @@ import { StaffMember, ShiftRotation, Shift, UserRole, Theme } from '../types';
 import { Search, Calendar, Users, AlertTriangle, Trash2, Filter } from 'lucide-react';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const SHIFTS: { id: Shift; label: string; color: string; bg: string } = [
+const SHIFTS: { id: Shift; label: string; color: string; bg: string }[] = [
   { id: 'MORNING', label: 'Morning (07:00 - 15:00)', color: 'text-blue-500', bg: 'bg-blue-500/10' },
   { id: 'EVENING', label: 'Evening (15:00 - 23:00)', color: 'text-green-500', bg: 'bg-green-500/10' },
   { id: 'NIGHT', label: 'Night (23:00 - 07:00)', color: 'text-red-500', bg: 'bg-red-500/10' }

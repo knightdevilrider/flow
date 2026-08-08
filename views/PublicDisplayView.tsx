@@ -31,26 +31,63 @@ interface FullScreenAnnouncementProps {
   theme: Theme;
 }
 
-const FullScreenAnnouncement: React.FC<FullScreenAnnouncementProps> = ({ patient, onClose, theme }) => {
+const FullScreenAnnouncement: React.FC<FullScreenAnnouncementProps & { currentLang: LanguageCode }> = ({ patient, onClose, theme, currentLang }) => {
+  const t = TRANSLATIONS[currentLang];
   const announcedRef = useRef(false);
+  const [timeLeft, setTimeLeft] = useState(120);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onClose();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [onClose]);
 
   useEffect(() => {
     if (announcedRef.current) return;
     announcedRef.current = true;
 
     const announce = async () => {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash-preview-tts",
-          contents: [{ parts: [{ text: `Attention. ${patient.name}, please proceed to ${STATUS_LABELS[patient.status]}.` }] }],
-          config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
-          },
-        });
+      const textToSpeak = `Attention. ${patient.name}, please proceed to ${STATUS_LABELS[patient.status]}.`;
+      const cacheKey = `tts_${patient.id}_${patient.status}`;
 
-        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      const playFallback = () => {
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        window.speechSynthesis.speak(utterance);
+      };
+
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        let base64Audio = cached;
+
+        if (!base64Audio) {
+          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+          const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-preview-tts",
+            contents: [{ parts: [{ text: textToSpeak }] }],
+            config: {
+              responseModalities: [Modality.AUDIO],
+              speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+            },
+          });
+          base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+          
+          if (base64Audio) {
+            try {
+              localStorage.setItem(cacheKey, base64Audio);
+            } catch (storageErr) {
+              console.warn("Storage quota exceeded for TTS caching.");
+            }
+          }
+        }
+
         if (base64Audio) {
           const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
           const buffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
@@ -58,22 +95,35 @@ const FullScreenAnnouncement: React.FC<FullScreenAnnouncementProps> = ({ patient
           source.buffer = buffer;
           source.connect(ctx.destination);
           source.start();
+        } else {
+          playFallback();
         }
-      } catch (e) { console.error(e); }
+      } catch (e) { 
+        console.error("TTS API Error:", e);
+        playFallback();
+      }
     };
 
     announce();
-    setTimeout(onClose, 6000);
-  }, [patient, onClose]);
+  }, [patient]);
 
   return (
-    <div className={`fixed inset-0 z-[9999] flex items-center justify-center animate-in fade-in zoom-in duration-500 select-none ${theme === 'light' ? 'bg-[#F5F5F7]/95' : 'bg-[#000]/95'} backdrop-blur-xl`}>
-      <div className="text-center relative z-10 w-full px-6 sm:px-12 lg:px-20 py-12 sm:py-20 rounded-[3rem] sm:rounded-[5rem] border-4 shadow-2xl bg-white dark:bg-[#1D1D1F] border-[#0A84FF]/30 mx-4">
-        <h3 className="text-2xl sm:text-5xl font-black text-[#0A84FF] uppercase tracking-[0.5em] sm:tracking-[1em] mb-6 sm:mb-12 animate-pulse">Calling</h3>
-        <h2 className="text-5xl sm:text-7xl md:text-[10rem] lg:text-[12rem] font-black text-[#1D1D1F] dark:text-white leading-tight sm:leading-none mb-4 tracking-tighter break-words">{patient.name}</h2>
-        <p className="text-xl sm:text-3xl md:text-5xl font-bold text-[#86868b] mb-10 sm:mb-20 tracking-[0.1em] sm:tracking-[0.2em]">PATIENT ID: {patient.id}</p>
-        <div className="inline-block px-12 sm:px-24 py-6 sm:py-12 bg-[#0A84FF] rounded-full shadow-2xl">
-          <p className="text-2xl sm:text-5xl md:text-7xl font-black text-white uppercase tracking-widest leading-none">{STATUS_LABELS[patient.status]}</p>
+    <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500 select-none ${theme === 'light' ? 'bg-[#F5F5F7]/95' : 'bg-[#000]/95'} backdrop-blur-xl`}>
+      <div className="text-center relative z-10 w-full max-w-7xl px-6 sm:px-12 lg:px-20 py-12 sm:py-20 rounded-[3rem] sm:rounded-[5rem] border-4 shadow-2xl bg-white dark:bg-[#1D1D1F] border-[#0A84FF]/30 mx-4">
+        <h3 className="text-2xl sm:text-5xl font-black text-[#0A84FF] uppercase tracking-[0.5em] sm:tracking-[1em] mb-6 sm:mb-12 animate-pulse">{t.calling}</h3>
+        {patient.publicDisplayConsent && patient.photo && <div className="mb-8 flex justify-center"><img src={patient.photo} alt="Patient" className="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 rounded-full border-8 border-[#0A84FF] shadow-2xl object-cover" /></div>}
+        <h2 className="text-5xl sm:text-7xl md:text-[10rem] lg:text-[12rem] font-black text-[#1D1D1F] dark:text-white leading-tight sm:leading-none mb-4 tracking-tighter break-words">{currentLang === 'en' ? patient.name : transliterateToDevanagari(patient.name)}</h2>
+        <p className="text-xl sm:text-3xl md:text-5xl font-bold text-[#86868b] mb-10 sm:mb-20 tracking-[0.1em] sm:tracking-[0.2em]">{t.patientId}: {patient.id}</p>
+        
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
+          <div className="inline-block px-12 sm:px-24 py-6 sm:py-12 bg-[#0A84FF] rounded-full shadow-2xl">
+            <p className="text-2xl sm:text-5xl md:text-7xl font-black text-white uppercase tracking-widest leading-none">{t.status[patient.status] || STATUS_LABELS[patient.status]}</p>
+          </div>
+          <div className="inline-block px-12 sm:px-24 py-6 sm:py-12 border-4 border-[#0A84FF] rounded-full">
+            <p className="text-2xl sm:text-5xl md:text-7xl font-black text-[#0A84FF] uppercase tracking-widest leading-none tabular-nums">
+              0{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -121,14 +171,27 @@ const PublicDisplayView: React.FC<{
     }
   };
 
+  const getFilterStatuses = () => {
+    switch (viewType) {
+      case 'reception': return [PatientStatus.GATE_REGISTERED, PatientStatus.RECEPTION_WAITING, PatientStatus.PAYMENT_DONE];
+      case 'checkin': return [PatientStatus.PAYMENT_DONE, PatientStatus.CHECKIN_WAITING];
+      case 'doctor': return [PatientStatus.CHECKIN_WAITING, PatientStatus.DOCTOR_WAITING];
+      case 'treatment': return [PatientStatus.TREATMENT];
+      case 'medical': return [PatientStatus.CONSULTATION_DONE, PatientStatus.MEDICINE_WAITING];
+      case 'ward': return [PatientStatus.ADMISSION_DESK, PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED];
+      default: return [];
+    }
+  };
+
   useEffect(() => {
     const now = Date.now();
-    const called = patients.find(p => p.lastCalledTimestamp && p.lastCalledTimestamp > now - 5000 && !lastAnnouncedRef.current[p.id]);
+    const validStatuses = getFilterStatuses();
+    const called = patients.find(p => p.lastCalledTimestamp && p.lastCalledTimestamp > now - 5000 && !lastAnnouncedRef.current[p.id] && validStatuses.includes(p.status));
     if (called) {
       lastAnnouncedRef.current[called.id] = called.lastCalledTimestamp!;
       setAnnouncingPatient(called);
     }
-  }, [patients]);
+  }, [patients, viewType]);
 
   const themeStyles = {
     light: {
@@ -167,18 +230,6 @@ const PublicDisplayView: React.FC<{
 
   const activePatients = patients.filter(p => p.status !== PatientStatus.COMPLETED);
   const isHighVolume = activePatients.length > thresholds.highVolumeTrigger;
-
-  const getFilterStatuses = () => {
-    switch (viewType) {
-      case 'reception': return [PatientStatus.GATE_REGISTERED, PatientStatus.RECEPTION_WAITING, PatientStatus.PAYMENT_DONE];
-      case 'checkin': return [PatientStatus.PAYMENT_DONE, PatientStatus.CHECKIN_WAITING];
-      case 'doctor': return [PatientStatus.CHECKIN_WAITING, PatientStatus.DOCTOR_WAITING];
-      case 'treatment': return [PatientStatus.TREATMENT];
-      case 'medical': return [PatientStatus.CONSULTATION_DONE, PatientStatus.MEDICINE_WAITING];
-      case 'ward': return [PatientStatus.ADMISSION_DESK, PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED];
-      default: return [];
-    }
-  };
 
   const getFilteredListLength = () => {
     return patients

@@ -13,7 +13,10 @@ import {
   BillingScheme,
   NABHKPI,
   StaffMember,
-  InventoryItem
+  InventoryItem,
+  Workstation,
+  CustomRole,
+  ShiftConfig
 } from './types';
 import { mockFirestore } from './services/mockFirestore';
 import { googleSheetsService } from './services/googleSheets';
@@ -58,7 +61,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('demo') === 'true';
   });
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
   const [showSettings, setShowSettings] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -97,6 +100,13 @@ const App: React.FC = () => {
   ]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [workstations, setWorkstations] = useState<Workstation[]>([]);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  const [customShifts, setCustomShifts] = useState<ShiftConfig[]>([
+    { id: 'MORNING', label: 'MORNING (07:00 - 15:00)', startTime: '07:00', endTime: '15:00', iconName: 'Sun', color: 'text-amber-500' },
+    { id: 'EVENING', label: 'EVENING (15:00 - 23:00)', startTime: '15:00', endTime: '23:00', iconName: 'Sunset', color: 'text-orange-500' },
+    { id: 'NIGHT', label: 'NIGHT (23:00 - 07:00)', startTime: '23:00', endTime: '07:00', iconName: 'Moon', color: 'text-indigo-500' }
+  ]);
 
   useEffect(() => {
     const unsubscribe = initAuth(
@@ -449,6 +459,11 @@ const App: React.FC = () => {
           onAddAuditLog={addAuditLog}
           patients={patients}
           staff={staff}
+          workstations={workstations}
+          customRoles={customRoles}
+          setCustomRoles={setCustomRoles}
+          customShifts={customShifts}
+          setCustomShifts={setCustomShifts}
         />
       );
     }
@@ -468,7 +483,7 @@ const App: React.FC = () => {
       case UserRole.BILLING: return <StaffBilling patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.VISITOR_MGMT: return <StaffVisitorMgmt patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.ATTENDANT_MGMT: return <StaffAttendantMgmt patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
-      case UserRole.ADMIN: return <AdminConsole theme={theme} doctors={doctors} staff={staff} rotations={roster as any} isAdmin={isAdminMode} />;
+      case UserRole.ADMIN: return <AdminConsole theme={theme} doctors={doctors} staff={staff} rotations={roster as any} isAdmin={isAdminMode} customRoles={customRoles} setCustomRoles={setCustomRoles} customShifts={customShifts} setCustomShifts={setCustomShifts} />;
       case UserRole.PUBLIC: return <PublicDisplayView patients={patients} viewType={selectedSubView || 'all'} theme={theme} thresholds={thresholds} roster={roster} doctors={doctors} onBack={handleBack} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       default: return <MainDashboard onRoleSelect={handleRoleSelect} patients={activePatients} theme={theme} onThemeToggle={toggleTheme} onSettings={handleSettingsClick} isAdmin={isAdminMode} />;
     }
@@ -527,6 +542,11 @@ const App: React.FC = () => {
           initialData={editingPatient}
           theme={theme}
           doctors={doctors}
+          workstations={workstations}
+          customRoles={customRoles}
+          setCustomRoles={setCustomRoles}
+          customShifts={customShifts}
+          setCustomShifts={setCustomShifts}
         />
         <DeletePatientModal
           isOpen={isDeleteModalOpen}

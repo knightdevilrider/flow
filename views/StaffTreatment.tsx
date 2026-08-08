@@ -78,6 +78,27 @@ const StaffTreatment: React.FC<StaffTreatmentProps> = ({ patients, theme, isAdmi
   });
   
   const isLabMode = true;
+  const isProcessingAutoCall = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!currentPatient && queue.length > 0 && selectedStation !== 'All' && !isProcessingAutoCall.current) {
+      const autoIntake = async () => {
+        isProcessingAutoCall.current = true;
+        const next = queue[0];
+        try {
+          setMessage(`Auto-Calling: ${next.name}`);
+          await mockFirestore.callPatient(next.id, PatientStatus.TREATMENT, patients);
+          setTimeout(() => {
+            isProcessingAutoCall.current = false;
+            setMessage('');
+          }, 1500);
+        } catch (err) {
+          isProcessingAutoCall.current = false;
+        }
+      };
+      autoIntake();
+    }
+  }, [patients, currentPatient, queue, selectedStation]);
 
   const handleCallNext = async () => {
     let next: Patient | undefined;

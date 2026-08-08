@@ -1,7 +1,8 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { IntercomProvider } from './src/contexts/IntercomContext';
+import { IntercomOverlay } from './components/IntercomOverlay';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,6 +12,9 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <IntercomProvider>
+      <IntercomOverlay />
+      <App />
+    </IntercomProvider>
   </React.StrictMode>
 );

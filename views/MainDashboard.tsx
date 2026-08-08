@@ -107,7 +107,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 pb-20 pt-2 flex flex-col items-center relative">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 pb-20 pt-20 sm:pt-2 flex flex-col items-center relative">
       {/* Mobile Top Bar */}
       <div className={`sm:hidden absolute top-0 left-0 right-0 z-[60] h-16 flex items-center justify-between px-6 backdrop-blur-md shadow-lg ${s.mobileBar}`}>
         <button 
@@ -222,7 +222,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
 
       <header className="text-center mb-10 mt-20 sm:mt-24 w-full max-w-4xl flex-shrink-0 px-4">
         <h1 className={`text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-2 transition-all ${s.header}`}>
-          Clinic Flow <span className={s.accent}>Pro</span>
+          Hospital<span className={s.accent}>Flow</span>
         </h1>
         <p className={`hidden sm:block text-[10px] sm:text-xs font-bold uppercase tracking-[0.4em] sm:tracking-[0.6em] transition-all ${s.sub}`}>
           Intelligent EMR Logistics & Throughput Engine

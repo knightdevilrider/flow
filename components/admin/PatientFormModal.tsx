@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Phone, MapPin, Activity, Calendar, Hash, Stethoscope, BedDouble } from 'lucide-react';
 import { Patient, Theme, PatientCategory, PatientStatus, Doctor } from '../../types';
+import { AreaAutocomplete } from '../AreaAutocomplete';
+import { LOCALITY_DATABASE } from '../../constants';
 
 interface PatientFormModalProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ interface PatientFormModalProps {
 }
 
 const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, onSave, initialData, theme, doctors }) => {
+  const [isManualArea, setIsManualArea] = useState(false);
   const [formData, setFormData] = useState<Partial<Patient>>({
     name: '',
     age: '',
@@ -84,6 +87,34 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
   };
 
   const s = themeStyles[theme];
+
+  const handleLocalitySelect = (locality: any) => {
+    setFormData(prev => ({
+      ...prev,
+      area: locality.name,
+      pincode: locality.pincode,
+      geographicZone: locality.zone,
+      travelDistanceKm: locality.distance
+    }));
+    setIsManualArea(false);
+  };
+
+  const handlePincodeChange = (pin: string) => {
+    const cleanedPin = pin.replace(/\D/g, '').slice(0, 6);
+    setFormData(prev => ({ ...prev, pincode: cleanedPin }));
+    if (cleanedPin.length === 6) {
+      const match = LOCALITY_DATABASE.find(l => l.pincode === cleanedPin);
+      if (match) {
+        setFormData(prev => ({
+          ...prev,
+          area: match.name,
+          geographicZone: match.zone,
+          travelDistanceKm: match.distance
+        }));
+        setIsManualArea(false);
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +214,78 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Area</label>
+                <AreaAutocomplete 
+                  value={formData.area || ''} 
+                  onSelectLocality={handleLocalitySelect}
+                  onManualChange={(val) => setFormData({ ...formData, area: val })}
+                  theme={theme}
+                  styles={s}
+                  isManualMode={isManualArea}
+                  selectedZone={(formData.geographicZone as any) || 'Urban-Ahmednagar'}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Pincode</label>
+                <input
+                  type="text" placeholder="Pincode" maxLength={6}
+                  value={formData.pincode || ''} onChange={e => handlePincodeChange(e.target.value)}
+                  className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Geographic Zone</label>
+                <select
+                  value={formData.geographicZone || 'Urban-Ahmednagar'} onChange={e => setFormData({...formData, geographicZone: e.target.value as any})}
+                  className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                >
+                  <option value="Urban-Ahmednagar">Urban-Ahmednagar</option>
+                  <option value="Rural-Taluka">Rural-Taluka</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Payer Type</label>
+                <select
+                  value={formData.payerType || 'Cash'} onChange={e => setFormData({...formData, payerType: e.target.value as any})}
+                  className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Insurance_TPA">Insurance_TPA</option>
+                  <option value="Corporate">Corporate</option>
+                  <option value="Govt_Scheme">Govt_Scheme</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>ABHA Status</label>
+                <select
+                  value={formData.abhaStatus || 'Linked'} onChange={e => setFormData({...formData, abhaStatus: e.target.value as any})}
+                  className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                >
+                  <option value="Linked">Linked</option>
+                  <option value="Failed">Failed</option>
+                  <option value="Skipped">Skipped</option>
+                </select>
+              </div>
+            </div>
+
+            <label className="flex items-center gap-3 cursor-pointer group mt-4 pt-2">
+              <input 
+                type="checkbox" 
+                checked={formData.allowPhotoOnDisplay || false}
+                onChange={(e) => setFormData({ ...formData, allowPhotoOnDisplay: e.target.checked })}
+                className="w-5 h-5 rounded-md border-2 accent-[#007AFF] bg-transparent" 
+              />
+              <span className={`text-sm font-bold ${s.text} group-hover:opacity-80 transition-opacity`}>
+                Allow Photo on Public Display
+              </span>
+            </label>
+
           </div>
 
           {/* Section 2: Medical Details */}

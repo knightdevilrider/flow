@@ -267,6 +267,35 @@ export interface StaffMember {
   department?: string;
   supervisorId?: string; // Links this staff to a SUPERVISOR
   currentShift?: Shift; // Added for duty roster drag and drop
+  shiftApproved?: boolean;
+  
+  // Auto-Scheduling & Roster Fields
+  rotationPattern?: 'Morning-Night' | 'Fixed-Morning' | 'Fixed-Evening' | 'Fixed-Night';
+  lastWeeklyOff?: number;
+  hasAppAccess?: boolean;
+}
+
+export interface Post {
+  id: string;
+  name: string;
+  type: 'Inside' | 'Outside';
+  requiredRole: UserRole;
+  requiredHeadcount: number;
+  department?: string;
+}
+
+export interface RosterSchedule {
+  id: string;
+  date: string; // YYYY-MM-DD
+  status: 'Draft' | 'Published';
+  assignments: {
+    staffId: string;
+    postId: string;
+    shiftId: string; // 'MORNING' or 'NIGHT'
+    status: 'Present' | 'Absent' | 'Leave';
+    isOfflineUser?: boolean;
+  }[];
+  generatedAt: number;
 }
 
 export interface ShiftRotation {
@@ -294,7 +323,66 @@ export interface Ward {
   reserveBeds: number;
 }
 
-export type Shift = 'MORNING' | 'EVENING' | 'NIGHT';
+export type Shift = string;
+
+export interface ShiftConfig {
+  id: string;
+  label: string;
+  startTime: string;
+  endTime: string;
+  iconName?: string;
+  color?: string;
+}
+
+export interface CustomRole {
+  id: string;
+  name: string;
+  createdAt: number;
+}
+
+export const ROLE_CATEGORIES = [
+  {
+    label: 'Medical Staff (Doctors)',
+    roles: [
+      { id: UserRole.DOCTOR, name: 'Consultants & Specialists' },
+      { id: UserRole.MEDICAL, name: 'Resident Medical Officers (RMOs)' },
+      { id: UserRole.DOCTOR, name: 'Surgeons & Anesthetists' },
+      { id: UserRole.DOCTOR, name: 'Intensivists (ICU/NICU/PICU)' },
+      { id: UserRole.MEDICAL, name: 'Emergency Medical Officers' },
+    ]
+  },
+  {
+    label: 'Nursing & Ward Care',
+    roles: [
+      { id: UserRole.WARD_CARE, name: 'Ward Nurses / Bed Management' },
+      { id: UserRole.MEDICAL, name: 'Treatment Station Nurse' },
+    ]
+  },
+  {
+    label: 'Allied Medical',
+    roles: [
+      { id: UserRole.PHARMACY, name: 'Pharmacy & Billing' },
+    ]
+  },
+  {
+    label: 'Administration & Front Desk',
+    roles: [
+      { id: UserRole.RECEPTION, name: 'Reception & Admission Desk' },
+      { id: UserRole.CHECKIN, name: 'Check-In Station' },
+      { id: UserRole.BILLING, name: 'Discharge Lounge (Billing)' },
+      { id: UserRole.ADMIN, name: 'System Administrator' },
+      { id: UserRole.SUPERVISOR, name: 'Floor Supervisor' },
+    ]
+  },
+  {
+    label: 'Security & Management',
+    roles: [
+      { id: UserRole.GATE, name: 'Gate & Security Guards' },
+      { id: UserRole.VISITOR_MGMT, name: 'Visitor Management' },
+      { id: UserRole.ATTENDANT_MGMT, name: 'Attendant Management' },
+    ]
+  }
+];
 
 export interface DoctorRoster {
   doctorId: string;
@@ -352,6 +440,7 @@ export interface SystemThresholds {
 }
 
 export enum UserRole {
+  UNASSIGNED = 'unassigned',
   GATE = 'gate', // Exit sensors / Entrance
   RECEPTION = 'reception', // Admission Desk
   CHECKIN = 'checkin',

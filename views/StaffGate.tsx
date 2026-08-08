@@ -34,6 +34,8 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
     phone: '',
     idType: 'Aadhaar Card',
     idNumber: '',
+      publicDisplayConsent: true,
+      photoUrl: '',
     age: '',
     gender: 'Male',
     address: '',
@@ -298,6 +300,8 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         category: formData.category,
         idType: formData.idType,
         idNumber: formData.idNumber,
+          publicDisplayConsent: formData.publicDisplayConsent,
+          photoUrl: formData.photoUrl,
         age: formData.age,
         gender: formData.gender,
         address: formData.address,
@@ -335,6 +339,8 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
           phone: '',
           idType: 'Aadhaar Card',
           idNumber: '',
+      publicDisplayConsent: true,
+      photoUrl: '',
           age: '',
           gender: 'Male',
           address: '',
@@ -389,7 +395,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
 
         {/* Main Selection Grid */}
         <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 space-y-4 sm:space-y-6 pb-8">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             {categories.map((cat) => (
               <button
                 key={cat.id}
@@ -555,7 +561,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
                       className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-base ${s.input}`} 
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Contact</label>
                       <input 
@@ -582,7 +588,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
                   
                   <div className="space-y-2">
                     <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Geographic Zone</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {(['Urban-Ahmednagar', 'Rural-Taluka'] as const).map(zone => (
                         <button
                           key={zone}
@@ -616,7 +622,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Pincode</label>
                       <input 
@@ -705,7 +711,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
                   <span className={`w-1 h-6 rounded-full ${theme === 'light' ? 'bg-[#0071e3]' : 'bg-[#0A84FF]'}`}></span> 
                   CLINICAL VITALS
                 </h4>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Temperature (°F)</label>
                     <input type="text" placeholder="98.6" value={formData.temperature} onChange={(e) => setFormData({...formData, temperature: e.target.value})} className={`w-full rounded-xl px-4 py-3 font-black outline-none border-2 text-xs sm:text-sm ${s.input}`} />
@@ -844,7 +850,27 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
               {isSubmitting ? 'SYNCING...' : 'FINALIZE REGISTRATION'}
             </button>
           </div>
-        </form>
+        
+          {/* Patient Photo Section */}
+          <div className={`p-4 rounded-[1rem] border-2 ${s.card} space-y-4 mb-4`}>
+            <h3 className={`text-xs font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Public Display Preferences</h3>
+            
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                checked={formData.publicDisplayConsent}
+                onChange={(e) => setFormData({ ...formData, publicDisplayConsent: e.target.checked })}
+                className="w-5 h-5 rounded-md border-2 accent-[#007AFF] bg-transparent" 
+              />
+              <span className={`text-sm font-bold ${s.text} group-hover:opacity-80 transition-opacity`}>
+                Allow Photo on Public Display (helps patients recognize their turn)
+              </span>
+            </label>
+
+            
+          </div>
+  
+          </form>
       </div>
 
       {/* Processed Registry (Form View) */}

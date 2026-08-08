@@ -14,11 +14,18 @@ interface PatientContactModalProps {
 const PatientContactModal: React.FC<PatientContactModalProps> = ({ patient, onClose, isAdmin, onEdit, onDelete }) => {
   if (!patient) return null;
 
-  const formatDate = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (ts?: number) => {
+    if (!ts) return '--:--';
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return '--:--';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
-  const calculateDuration = (entry: number, exit?: number) => {
+  const calculateDuration = (entry?: number, exit?: number) => {
+    if (!entry) return '--';
     if (!exit) return 'In Progress...';
     const diff = exit - entry;
+    if (isNaN(diff)) return '--';
     const mins = Math.floor(diff / 60000);
     const secs = Math.floor((diff % 60000) / 1000);
     if (mins === 0) return `${secs}s`;
@@ -26,11 +33,14 @@ const PatientContactModal: React.FC<PatientContactModalProps> = ({ patient, onCl
   };
 
   const calculateTotalTime = () => {
-    if (patient.history.length === 0) return '0m';
-    const start = patient.history[0].entryTime;
-    const lastLog = patient.history[patient.history.length - 1];
+    const history = patient.history || [];
+    if (history.length === 0) return '0m';
+    const start = history[0].entryTime;
+    if (!start) return '--';
+    const lastLog = history[history.length - 1];
     const end = lastLog.exitTime || Date.now();
     const diff = end - start;
+    if (isNaN(diff)) return '--';
     const hrs = Math.floor(diff / 3600000);
     const mins = Math.floor((diff % 3600000) / 60000);
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
@@ -85,14 +95,14 @@ const PatientContactModal: React.FC<PatientContactModalProps> = ({ patient, onCl
             </div>
             
             <div className="space-y-0 max-h-[350px] overflow-y-auto pr-4 custom-scrollbar">
-              {patient.history.length === 0 ? (
+              {(!patient.history || patient.history.length === 0) ? (
                 <p className="text-slate-600 text-center py-10 font-bold uppercase tracking-widest text-xs italic">No logs available</p>
               ) : (
-                patient.history.map((log, idx) => (
+                (patient.history || []).map((log, idx) => (
                   <div key={idx} className="flex gap-6 group">
                     <div className="flex flex-col items-center">
-                      <div className={`w-4 h-4 rounded-full border-2 border-slate-900 z-10 ${idx === patient.history.length - 1 ? 'bg-indigo-500 animate-pulse shadow-[0_0_15px_rgba(99,102,241,0.6)]' : 'bg-slate-700'}`}></div>
-                      {idx < patient.history.length - 1 && <div className="w-[2px] h-full bg-slate-800 -my-1"></div>}
+                      <div className={`w-4 h-4 rounded-full border-2 border-slate-900 z-10 ${idx === (patient.history || []).length - 1 ? 'bg-indigo-500 animate-pulse shadow-[0_0_15px_rgba(99,102,241,0.6)]' : 'bg-slate-700'}`}></div>
+                      {idx < (patient.history || []).length - 1 && <div className="w-[2px] h-full bg-slate-800 -my-1"></div>}
                     </div>
                     <div className="flex-1 pb-10">
                       <div className="flex justify-between items-start">

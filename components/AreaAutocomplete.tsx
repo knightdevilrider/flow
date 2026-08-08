@@ -11,6 +11,7 @@ interface AreaAutocompleteProps {
   styles: any;
   isManualMode?: boolean;
   selectedZone?: 'Urban-Ahmednagar' | 'Rural-Taluka';
+  required?: boolean;
 }
 
 export const AreaAutocomplete: React.FC<AreaAutocompleteProps> = ({ 
@@ -20,7 +21,8 @@ export const AreaAutocomplete: React.FC<AreaAutocompleteProps> = ({
   theme, 
   styles,
   isManualMode = false,
-  selectedZone
+  selectedZone,
+  required = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(value);
@@ -91,7 +93,7 @@ export const AreaAutocomplete: React.FC<AreaAutocompleteProps> = ({
           onFocus={() => !isManualMode && setIsOpen(true)}
           placeholder={isManualMode ? "Type locality manually..." : "Search Area / Locality / Pincode..."}
           className={`${styles.input} w-full pr-10`}
-          required
+          required={required}
         />
         {isManualMode && (
           <button

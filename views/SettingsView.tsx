@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Theme, Doctor, Ward, Section, DoctorRoster, Shift, SystemThresholds, AuditLog, Patient, BillingScheme, NABHKPI, UserRole, StaffMember } from '../types';
+import { Theme, Doctor, Ward, Section, DoctorRoster, Shift, SystemThresholds, AuditLog, Patient, BillingScheme, NABHKPI, UserRole, StaffMember, Workstation, CustomRole, ShiftConfig, ROLE_CATEGORIES } from '../types';
 
 
 import { 
@@ -25,6 +25,7 @@ import GlobalTATMetrics from '../components/admin/GlobalTATMetrics';
 import PatientTimelineModal from '../components/admin/PatientTimelineModal';
 import PatientFormModal from '../components/admin/PatientFormModal';
 import DeletePatientModal from '../components/admin/DeletePatientModal';
+import { RoleManagementBoard } from '../components/admin/RoleManagementBoard';
 import { 
   Users, 
   Stethoscope, 
@@ -60,14 +61,20 @@ interface SettingsViewProps {
   onAddAuditLog: (action: string, details: string) => void;
   patients: Patient[];
   staff: StaffMember[];
+  workstations: Workstation[];
+  customRoles?: CustomRole[];
+  setCustomRoles?: (roles: CustomRole[]) => void;
+  customShifts?: ShiftConfig[];
+  setCustomShifts?: (shifts: ShiftConfig[]) => void;
 }
 
 type Tab = 'STAFF' | 'FACILITY' | 'OPERATIONS' | 'COMPLIANCE' | 'SYSTEM' | 'HISTORY' | 'PATIENTS';
-type StaffSubTab = 'doctors' | 'staff_list' | 'duty_list';
+type StaffSubTab = 'doctors' | 'staff_list' | 'roles' | 'duty_list';
 
 const SettingsView: React.FC<SettingsViewProps> = ({ 
   theme, doctors, setDoctors, wards, setWards, roster, setRoster, thresholds, setThresholds, 
-  schemes, setSchemes, kpis, setKpis, auditLogs, onAddAuditLog, patients, staff 
+  schemes, setSchemes, kpis, setKpis, auditLogs, onAddAuditLog, patients, staff, workstations,
+  customRoles = [], setCustomRoles, customShifts = [], setCustomShifts
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('STAFF');
   const [staffSubTab, setStaffSubTab] = useState<StaffSubTab>('doctors');
@@ -83,10 +90,16 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
 
   // Form states
-  const [newStaff, setNewStaff] = useState({ name: '', employeeId: '', role: UserRole.RECEPTION });
+  const [newStaff, setNewStaff] = useState({ name: '', employeeId: '', role: UserRole.UNASSIGNED, workstationId: 'unassigned' });
   const [newWard, setNewWard] = useState({ name: '', type: 'GENERAL' as any, capacity: 20 });
+  const [newWorkstation, setNewWorkstation] = useState({ name: '', role: UserRole.RECEPTION, domain: 'Medical Staff (Doctors)' });
   const [newRoster, setNewRoster] = useState({ doctorId: '', shift: 'MORNING' as Shift, room: '' });
   const [newScheme, setNewScheme] = useState({ name: '', discount: 0, tax: 0, limit: 100000 });
+  const [newKPI, setNewKPI] = useState({ name: '', target: 0, unit: 'percentage', currentValue: 0 });
+  
+  // Custom Role State
+  const [isAddingCustomRole, setIsAddingCustomRole] = useState(false);
+  const [newCustomRoleName, setNewCustomRoleName] = useState('');
 
   const [patientSearchQuery, setPatientSearchQuery] = useState('');
   const [localPatients, setLocalPatients] = useState<Patient[]>(patients);
@@ -139,6 +152,30 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const s = themeStyles[theme];
+  const isDark = theme !== 'light';
+
+  const handleAddCustomRole = () => {
+    if (newCustomRoleName.trim() && setCustomRoles) {
+      const newRole: CustomRole = {
+        id: `custom_${Date.now()}`,
+        name: newCustomRoleName.trim(),
+        createdAt: Date.now()
+      };
+      setCustomRoles([...(customRoles || []), newRole]);
+      setNewStaff({...newStaff, role: newRole.id});
+      setNewCustomRoleName('');
+      setIsAddingCustomRole(false);
+    }
+  };
+
+  const handleRemoveCustomRole = (roleId: string) => {
+    if (setCustomRoles) {
+      setCustomRoles((customRoles || []).filter(r => r.id !== roleId));
+      if (newStaff.role === roleId) {
+        setNewStaff({...newStaff, role: UserRole.UNASSIGNED});
+      }
+    }
+  };
 
   const handlePatientClick = (patient: Patient) => {
     setTimelinePatient(patient);
@@ -227,10 +264,22 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     if (!newStaff.name || !newStaff.employeeId) return;
     await addDoc(collection(db, 'staff'), newStaff);
     onAddAuditLog('Add Staff', `Registered ${newStaff.name} as ${newStaff.role}`);
-    setNewStaff({ name: '', employeeId: '', role: UserRole.RECEPTION });
+    setNewStaff({ name: '', employeeId: '', role: UserRole.UNASSIGNED, workstationId: 'unassigned' });
   };
 
-  const handleAddWard = () => {
+  const handleUpdateStaffRole = async (staffId: string, newRole: UserRole) => {
+    try {
+      await updateDoc(doc(db, 'staff', staffId), {
+        role: newRole,
+        updatedAt: Date.now()
+      });
+      onAddAuditLog('Update Role', `Updated staff role to ${newRole}`);
+    } catch (err) {
+      console.error('Error updating staff role:', err);
+    }
+  };
+
+  const handleAddWard = async () => {
     if (!newWard.name) return;
     const ward: Ward = {
       id: `WARD-${Date.now()}`,
@@ -241,9 +290,58 @@ const SettingsView: React.FC<SettingsViewProps> = ({
       maintenanceBeds: 0,
       reserveBeds: 0
     };
-    setWards([...wards, ward]);
-    onAddAuditLog('Add Ward', `Configured ${ward.name} with capacity ${ward.totalBeds}`);
+    await addDoc(collection(db, 'wards'), ward);
+    onAddAuditLog('Add Ward', `Added new ward ${ward.name}`);
     setNewWard({ name: '', type: 'GENERAL', capacity: 20 });
+  };
+
+  const handleAddWorkstation = async () => {
+    if (!newWorkstation.name) return;
+    const ws: Workstation = {
+      id: `WS-${Date.now()}`,
+      name: newWorkstation.name,
+      role: newWorkstation.role,
+      domain: newWorkstation.domain,
+      createdAt: Date.now()
+    };
+    await addDoc(collection(db, 'workstations'), ws);
+    onAddAuditLog('Add Workstation', `Added new workstation ${ws.name}`);
+    setNewWorkstation({ name: '', role: UserRole.RECEPTION, domain: 'Medical Staff (Doctors)' });
+  };
+
+  const handleSeedWorkstations = async () => {
+    const seedData = [
+      { domain: 'Medical Staff (Doctors)', name: 'Consultants & Specialists', role: UserRole.DOCTOR },
+      { domain: 'Medical Staff (Doctors)', name: 'Resident Medical Officers (RMOs)', role: UserRole.WARD_CARE },
+      { domain: 'Medical Staff (Doctors)', name: 'Surgeons & Anesthetists', role: UserRole.DOCTOR },
+      { domain: 'Medical Staff (Doctors)', name: 'Intensivists', role: UserRole.DOCTOR },
+      { domain: 'Nursing Staff', name: 'Staff Nurses', role: UserRole.MEDICAL },
+      { domain: 'Nursing Staff', name: 'Matron / Nursing Superintendent', role: UserRole.SUPERVISOR },
+      { domain: 'Nursing Staff', name: 'OT Nurses', role: UserRole.MEDICAL },
+      { domain: 'Allied Medical & Technical Staff', name: 'Lab Technicians', role: UserRole.MEDICAL },
+      { domain: 'Allied Medical & Technical Staff', name: 'Radiologists & X-Ray Technicians', role: UserRole.MEDICAL },
+      { domain: 'Allied Medical & Technical Staff', name: 'Pharmacists', role: UserRole.PHARMACY },
+      { domain: 'Housekeeping & Cleaning Staff', name: 'Ward Cleaners', role: UserRole.WARD_CARE },
+      { domain: 'Housekeeping & Cleaning Staff', name: 'Sanitation Workers', role: UserRole.WARD_CARE },
+      { domain: 'Housekeeping & Cleaning Staff', name: 'Housekeeping Supervisor', role: UserRole.SUPERVISOR },
+      { domain: 'Security Staff', name: 'Main Guards', role: UserRole.GATE },
+      { domain: 'Security Staff', name: 'Bouncer/Floor Guards', role: UserRole.GATE },
+      { domain: 'Security Staff', name: 'CCTV Officers', role: UserRole.GATE },
+      { domain: 'Front Desk & Administrative Staff', name: 'Receptionists', role: UserRole.RECEPTION },
+      { domain: 'Front Desk & Administrative Staff', name: 'Billing & TPA Insurance Executives', role: UserRole.BILLING },
+      { domain: 'Front Desk & Administrative Staff', name: 'Medical Record Executives (MRD)', role: UserRole.RECEPTION },
+    ];
+    for (const data of seedData) {
+      await addDoc(collection(db, 'workstations'), {
+        id: `WS-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        name: data.name,
+        role: data.role,
+        domain: data.domain,
+        createdAt: Date.now()
+      });
+    }
+    onAddAuditLog('Seed Workstations', 'Seeded default hospital staff domains and positions');
+    alert('Hospital Domains Seeded Successfully!');
   };
 
   const handleAddRoster = async () => {
@@ -376,6 +474,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 {[
                   { id: 'doctors', label: 'Doctor Table', icon: Stethoscope },
                   { id: 'staff_list', label: 'Staff List', icon: List },
+                  { id: 'roles', label: 'Users & Roles', icon: Users },
                   { id: 'duty_list', label: 'Duty List', icon: ClipboardList }
                 ].map(sub => (
                   <button
@@ -431,15 +530,75 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             value={newStaff.employeeId} onChange={e => setNewStaff({...newStaff, employeeId: e.target.value})}
                             className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
                           />
-                          <select
-                            value={newStaff.role}
-                            onChange={e => setNewStaff({...newStaff, role: e.target.value as UserRole})}
-                            className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
-                          >
-                            {(Object.values(UserRole) as string[]).filter(r => r !== UserRole.PUBLIC).map(role => (
-                              <option key={role} value={role} className="bg-[#1C1C1E] text-white">{role.toUpperCase()}</option>
-                            ))}
-                          </select>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex gap-2">
+                              <select
+                                value={newStaff.role || 'unassigned'}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === 'add_new') {
+                                    setIsAddingCustomRole(true);
+                                  } else {
+                                    setNewStaff({...newStaff, role: val});
+                                  }
+                                }}
+                                className={`flex-1 px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                              >
+                                <option value="unassigned" className="bg-[#1C1C1E] text-white">UNASSIGNED</option>
+                                {ROLE_CATEGORIES.map(category => (
+                                  <optgroup key={category.label} label={category.label} className="bg-[#2C2C2E] text-white/50 font-bold">
+                                    {category.roles.map(role => (
+                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                                    ))}
+                                  </optgroup>
+                                ))}
+                                {(customRoles || []).length > 0 && (
+                                  <optgroup label="Custom Roles" className="bg-[#2C2C2E] text-white/50 font-bold">
+                                    {(customRoles || []).map(role => (
+                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                                    ))}
+                                  </optgroup>
+                                )}
+                                <option value="add_new" className="bg-[#3A3A3C] text-blue-400 font-bold">+ ADD NEW ROLE</option>
+                              </select>
+                              {(customRoles || []).find(r => r.id === newStaff.role) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCustomRole(newStaff.role as string)}
+                                  className="p-4 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                                  title="Remove Custom Role"
+                                >
+                                  <Trash2 className="w-6 h-6" />
+                                </button>
+                              )}
+                            </div>
+                            {isAddingCustomRole && (
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Enter Custom Role Name"
+                                  value={newCustomRoleName}
+                                  onChange={e => setNewCustomRoleName(e.target.value)}
+                                  className={`flex-1 px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleAddCustomRole}
+                                  className="px-6 py-4 rounded-2xl bg-blue-500 text-white font-bold hover:bg-blue-600 transition-colors"
+                                >
+                                  Add
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setIsAddingCustomRole(false); setNewCustomRoleName(''); }}
+                                  className="px-6 py-4 rounded-2xl bg-white/10 text-white font-bold hover:bg-white/20 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <button onClick={handleAddStaff} className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl bg-indigo-600 text-white`}>
                           Add Staff Member
@@ -461,10 +620,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                           {staff.map(st => (
                             <tr key={st.id} className="hover:bg-white/5 transition-colors">
                               <td className="px-6 py-5 font-bold">{st.name}</td>
+                              <td className="px-6 py-5 opacity-70">{st.employeeId}</td>
                               <td className="px-6 py-5">
-                                <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-500 text-[10px] font-black uppercase tracking-widest border border-indigo-500/20">
-                                  {st.role}
-                                </span>
+                                  <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider">
+                                    {(st.role || 'unassigned').replace('_', ' ')}
+                                  </span>
                               </td>
                               <td className="px-6 py-5 text-right">
                                 <button onClick={() => handleDelete('staff', st.id)} className="p-2 rounded-lg hover:bg-red-500/10 text-red-500/50 hover:text-red-500 transition-colors">
@@ -485,8 +645,20 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
               )}
               
+              {staffSubTab === 'roles' && (
+                <div className="space-y-4">
+                  <h2 className={`text-xl font-black uppercase tracking-tight mb-4 ${s.text}`}>User Role Assignment</h2>
+                  <p className={`text-sm mb-6 ${s.sub}`}>Drag and drop staff members to reassign their operational roles instantly.</p>
+                  <RoleManagementBoard 
+                    staff={staff}
+                    theme={theme}
+                    onUpdateRole={handleUpdateStaffRole}
+                  />
+                </div>
+              )}
+                
               {staffSubTab === 'duty_list' && (
-                <DutyRoster staff={staff} theme={theme} />
+                <DutyRoster staff={staff} theme={theme} customShifts={customShifts} setCustomShifts={setCustomShifts} />
               )}
             </div>
           </div>
@@ -494,9 +666,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
         {activeTab === 'FACILITY' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10">
+            {/* Wards Configuration */}
             <div className={`p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border shadow-2xl ${s.card}`}>
               <div className="flex items-center gap-4 mb-8 sm:mb-10">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-emerald-500/10 flex items-center justify-center text-2xl sm:text-4xl shadow-inner">🏨</div>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-emerald-500/10 flex items-center justify-center text-2xl sm:text-4xl shadow-inner">🏥</div>
                 <h3 className={`text-xl sm:text-2xl font-black ${s.text} tracking-tight`}>Ward Configuration</h3>
               </div>
               <div className="space-y-4 sm:space-y-6">
@@ -514,65 +687,131 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     className={`flex-1 px-6 py-4 sm:py-5 rounded-2xl sm:rounded-3xl border outline-none transition-all font-bold ${s.input}`}
                   >
                     <option value="GENERAL" className="bg-[#1C1C1E] text-white">General Ward</option>
-                    <option value="ICU" className="bg-[#1C1C1E] text-white">ICU Unit</option>
-                    <option value="PRIVATE" className="bg-[#1C1C1E] text-white">Private Suite</option>
-                    <option value="SEMI-PRIVATE" className="bg-[#1C1C1E] text-white">Semi-Private Room</option>
+                    <option value="ICU" className="bg-[#1C1C1E] text-white">ICU</option>
+                    <option value="EMERGENCY" className="bg-[#1C1C1E] text-white">Emergency</option>
                   </select>
-                  <div className="flex gap-4">
-                    <input
-                      type="number"
-                      placeholder="Beds"
-                      value={isNaN(newWard.capacity) ? '' : newWard.capacity}
-                      onChange={(e) => setNewWard({...newWard, capacity: parseInt(e.target.value)})}
-                      className={`w-24 sm:w-32 px-6 py-4 sm:py-5 rounded-2xl sm:rounded-3xl border outline-none transition-all font-bold text-center ${s.input}`}
-                    />
-                    <button 
-                      onClick={handleAddWard}
-                      className={`flex-1 sm:flex-none px-10 py-4 sm:py-5 rounded-2xl sm:rounded-3xl font-black uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 ${s.btn}`}
-                    >
-                      Add
-                    </button>
-                  </div>
+                  <input
+                    type="number"
+                    placeholder="Beds"
+                    value={newWard.capacity}
+                    onChange={(e) => setNewWard({...newWard, capacity: parseInt(e.target.value) || 0})}
+                    className={`w-32 px-6 py-4 sm:py-5 rounded-2xl sm:rounded-3xl border outline-none transition-all font-bold ${s.input}`}
+                  />
+                </div>
+                <button 
+                  onClick={handleAddWard}
+                  className="w-full py-5 rounded-3xl font-black uppercase tracking-widest bg-emerald-600 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all active:translate-y-0"
+                >
+                  Create Ward
+                </button>
+              </div>
+            </div>
+
+            {/* Workstation Configuration */}
+            <div className={`p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border shadow-2xl ${s.card}`}>
+              <div className="flex items-center gap-4 mb-8 sm:mb-10">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-indigo-500/10 flex items-center justify-center text-2xl sm:text-4xl shadow-inner">📍</div>
+                <h3 className={`text-xl sm:text-2xl font-black ${s.text} tracking-tight`}>Workstations / Posts</h3>
+              </div>
+              <div className="space-y-4 sm:space-y-6">
+                <input
+                  type="text" required placeholder="Workstation Name (e.g. ICU Wing A)"
+                  value={newWorkstation.name}
+                  onChange={(e) => setNewWorkstation({...newWorkstation, name: e.target.value})}
+                  className={`w-full px-6 py-4 sm:py-5 rounded-2xl sm:rounded-3xl border outline-none transition-all font-bold ${s.input}`}
+                />
+                <select
+                  value={newWorkstation.domain}
+                  onChange={(e) => setNewWorkstation({...newWorkstation, domain: e.target.value})}
+                  className={`w-full px-6 py-4 sm:py-5 rounded-2xl sm:rounded-3xl border outline-none transition-all font-bold ${s.input}`}
+                >
+                  <option value="Medical Staff (Doctors)" className="bg-[#1C1C1E] text-white">Medical Staff (Doctors)</option>
+                  <option value="Nursing Staff" className="bg-[#1C1C1E] text-white">Nursing Staff</option>
+                  <option value="Allied Medical & Technical Staff" className="bg-[#1C1C1E] text-white">Allied Medical & Technical Staff</option>
+                  <option value="Housekeeping & Cleaning Staff" className="bg-[#1C1C1E] text-white">Housekeeping & Cleaning Staff</option>
+                  <option value="Security Staff" className="bg-[#1C1C1E] text-white">Security Staff</option>
+                  <option value="Front Desk & Administrative Staff" className="bg-[#1C1C1E] text-white">Front Desk & Administrative Staff</option>
+                  <option value="Other" className="bg-[#1C1C1E] text-white">Other</option>
+                </select>
+                <select
+                  value={newWorkstation.role}
+                  onChange={(e) => setNewWorkstation({...newWorkstation, role: e.target.value as UserRole})}
+                  className={`w-full px-6 py-4 sm:py-5 rounded-2xl sm:rounded-3xl border outline-none transition-all font-bold ${s.input}`}
+                >
+                  {ROLE_CATEGORIES.map(category => (
+                    <optgroup key={category.label} label={category.label} className="bg-[#2C2C2E] text-white/50 font-bold">
+                      {category.roles.map(role => (
+                        <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  {(customRoles || []).length > 0 && (
+                    <optgroup label="Custom Roles" className="bg-[#2C2C2E] text-white/50 font-bold">
+                      {(customRoles || []).map(role => (
+                        <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+                <div className="flex gap-4">
+                  <button 
+                    onClick={handleAddWorkstation}
+                    className="flex-1 py-5 rounded-3xl font-black uppercase tracking-widest bg-indigo-600 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all active:translate-y-0"
+                  >
+                    Create Post
+                  </button>
+                  <button 
+                    onClick={handleSeedWorkstations}
+                    className="py-5 px-6 rounded-3xl font-black uppercase tracking-widest bg-emerald-600 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all active:translate-y-0"
+                    title="Seed Default Hospital Domains"
+                  >
+                    Seed Data
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6 sm:space-y-8">
-              {wards.map(ward => (
-                <div key={ward.id} className={`p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border shadow-2xl transition-all hover:scale-[1.01] ${s.card} flex flex-col gap-8`}>
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col">
-                      <h4 className={`text-2xl sm:text-3xl font-black tracking-tighter ${s.text}`}>{ward.name}</h4>
-                      <span className={`text-[10px] sm:text-xs font-black uppercase tracking-widest opacity-40 ${s.sub}`}>{ward.type}</span>
-                    </div>
-                    <div className="px-4 py-1.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest">Active</div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div className="flex flex-col gap-2">
-                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ${s.sub}`}>Total Capacity</span>
-                      <div className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/5 bg-black/5 text-2xl sm:text-3xl font-black tracking-tighter ${s.text} shadow-inner`}>{ward.totalBeds}</div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60`}>In Maintenance</span>
-                      <input 
-                        type="number"
-                        value={isNaN(ward.maintenanceBeds) ? '' : ward.maintenanceBeds}
-                        onChange={(e) => setWards(wards.map(w => w.id === ward.id ? { ...w, maintenanceBeds: parseInt(e.target.value) } : w))}
-                        className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/5 bg-black/5 text-2xl sm:text-3xl font-black tracking-tighter text-orange-500 outline-none w-full shadow-inner`}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500/60`}>ER Reservation</span>
-                      <input 
-                        type="number"
-                        value={isNaN(ward.reserveBeds) ? '' : ward.reserveBeds}
-                        onChange={(e) => setWards(wards.map(w => w.id === ward.id ? { ...w, reserveBeds: parseInt(e.target.value) } : w))}
-                        className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-white/5 bg-black/5 text-2xl sm:text-3xl font-black tracking-tighter text-emerald-500 outline-none w-full shadow-inner`}
-                      />
-                    </div>
+            {/* System Capacity Overview */}
+            <div className={`lg:col-span-2 p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border shadow-2xl ${s.card}`}>
+              <div className="flex items-center gap-4 mb-8 sm:mb-10">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-blue-500/10 flex items-center justify-center text-2xl sm:text-4xl shadow-inner">📊</div>
+                <h3 className={`text-xl sm:text-2xl font-black ${s.text} tracking-tight`}>System Capacity</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Wards Display */}
+                <div>
+                  <h4 className={`text-sm font-bold uppercase tracking-widest opacity-50 mb-4 ${s.text}`}>Wards Overview</h4>
+                  <div className="space-y-3">
+                    {wards.map(ward => (
+                      <div key={ward.id} className={`p-4 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} flex items-center justify-between`}>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold">{ward.name}</span>
+                          <span className="text-xs px-2 py-1 bg-white/10 rounded-lg">{ward.type}</span>
+                        </div>
+                        <div className="text-sm font-black">{ward.totalBeds} Beds</div>
+                      </div>
+                    ))}
+                    {wards.length === 0 && <div className="text-sm opacity-50">No wards configured</div>}
                   </div>
                 </div>
-              ))}
+
+                {/* Workstations Display */}
+                <div>
+                  <h4 className={`text-sm font-bold uppercase tracking-widest opacity-50 mb-4 ${s.text}`}>Workstations Overview</h4>
+                  <div className="space-y-3">
+                    {workstations.map(ws => (
+                      <div key={ws.id} className={`p-4 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} flex items-center justify-between`}>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold">{ws.name}</span>
+                        </div>
+                        <div className="text-xs px-2 py-1 bg-white/10 rounded-lg">{ws.domain || 'Other'}</div>
+                      </div>
+                    ))}
+                    {workstations.length === 0 && <div className="text-sm opacity-50">No workstations configured</div>}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

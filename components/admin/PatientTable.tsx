@@ -81,15 +81,15 @@ const PatientTable: React.FC<PatientTableProps> = ({ patients, onPatientClick, t
                   </div>
                 </td>
                 <td className="px-6 py-5">
-                  <div className="text-[10px] font-black uppercase tracking-tight">{p.category}</div>
+                  <div className="text-[10px] font-black uppercase tracking-tight">{p.category || 'N/A'}</div>
                   <div className="text-[9px] opacity-50 font-medium">Bed: {p.allocatedBedNumber || 'Not assigned'}</div>
-                  <div className="text-[8px] opacity-30 mt-0.5">{new Date(p.timestamp).toLocaleDateString()}</div>
+                  <div className="text-[8px] opacity-30 mt-0.5">{p.timestamp ? new Date(p.timestamp).toLocaleDateString() : 'Unknown Date'}</div>
                 </td>
                 <td className="px-6 py-5">
                   <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border ${
-                    p.status.includes('discharged') ? 'bg-slate-500/10 text-slate-500 border-slate-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                    (p.status || '').includes('discharged') ? 'bg-slate-500/10 text-slate-500 border-slate-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                   }`}>
-                    {p.status.replace(/_/g, ' ')}
+                    {(p.status || 'UNKNOWN').replace(/_/g, ' ')}
                   </span>
                 </td>
               </tr>

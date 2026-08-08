@@ -61,7 +61,7 @@ const App: React.FC = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('demo') === 'true';
   });
-  const [theme, setTheme] = useState<Theme>('light');
+  const [theme, setTheme] = useState<Theme>('dark');
   const [showSettings, setShowSettings] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);

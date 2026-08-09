@@ -5,6 +5,8 @@ export type AlertSeverity = 'info' | 'warning' | 'critical';
 export interface IntercomAlert {
   id: string;
   sender: string;
+  recipientId: string;
+  recipientName: string;
   message: string;
   severity: AlertSeverity;
   timestamp: number;
@@ -12,7 +14,7 @@ export interface IntercomAlert {
 
 interface IntercomContextType {
   alerts: IntercomAlert[];
-  sendAlert: (sender: string, message: string, severity?: AlertSeverity) => void;
+  sendAlert: (sender: string, recipientId: string, recipientName: string, message: string, severity?: AlertSeverity) => void;
   dismissAlert: (id: string) => void;
 }
 
@@ -21,10 +23,12 @@ const IntercomContext = createContext<IntercomContextType | undefined>(undefined
 export const IntercomProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [alerts, setAlerts] = useState<IntercomAlert[]>([]);
 
-  const sendAlert = (sender: string, message: string, severity: AlertSeverity = 'info') => {
+  const sendAlert = (sender: string, recipientId: string, recipientName: string, message: string, severity: AlertSeverity = 'info') => {
     const newAlert: IntercomAlert = {
       id: Math.random().toString(36).substring(2, 9),
       sender,
+      recipientId,
+      recipientName,
       message,
       severity,
       timestamp: Date.now(),

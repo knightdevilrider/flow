@@ -232,7 +232,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
                 const pin = window.prompt('Enter Admin PIN (1234) for Emergency Override:');
                 if (pin === '1234') {
                   setIsOverrideUnlocked(true);
-                  sendAlert('Reception', '🚨 EMERGENCY BYPASS AUTHORIZED. FCFS unlocked.', 'critical');
+                  sendAlert('Reception', 'EVERYONE', 'Everyone', '🚨 EMERGENCY BYPASS AUTHORIZED. FCFS unlocked.', 'critical');
                 } else if (pin !== null) {
                   alert('Invalid PIN.');
                 }
@@ -401,7 +401,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
                             <button 
                               onClick={() => {
                                 const docName = doctors.find(d => d.id === selectedDoctorId)?.name || 'Doctor';
-                                sendAlert('Reception', `Please be ready. Patient ${viewingPatient.name} is on the way to your cabin.`, 'info');
+                                sendAlert('Reception', selectedDoctorId || 'EVERYONE', docName, `Please be ready. Patient ${viewingPatient.name} is on the way to your cabin.`, 'info');
                                 setMessage(`Pinged ${docName}`);
                                 setTimeout(() => setMessage(''), 3000);
                               }}

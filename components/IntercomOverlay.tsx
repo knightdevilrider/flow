@@ -5,11 +5,13 @@ import { AlertTriangle, Info, BellRing, XCircle } from 'lucide-react';
 export const IntercomOverlay: React.FC = () => {
   const { alerts, dismissAlert } = useIntercom();
 
-  if (alerts.length === 0) return null;
+  const criticalAlerts = alerts.filter(a => a.severity === 'critical');
+
+  if (criticalAlerts.length === 0) return null;
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none flex flex-col items-center justify-start pt-20 px-4 space-y-4">
-      {alerts.map(alert => {
+      {criticalAlerts.map(alert => {
         
         let bgStyle = '';
         let icon = null;

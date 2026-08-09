@@ -9,6 +9,12 @@ export enum PatientStatus {
   TREATMENT = 'treatment',
   MEDICINE_WAITING = 'medicine_waiting',
   DOCTOR_RECONSULT = 'doctor_reconsult',
+  LAB_WAITING = 'lab_waiting',
+  LAB_DONE = 'lab_done',
+  RADIOLOGY_WAITING = 'radiology_waiting',
+  RADIOLOGY_DONE = 'radiology_done',
+  PHARMACY_DONE = 'pharmacy_done',
+  MISSED_TURN = 'missed_turn',
   
   // IPD Workflow
   ADMISSION_DESK = 'admission_desk',
@@ -29,20 +35,13 @@ export enum PatientCategory {
   IPD = 'Admitted (IPD)',
   VISITOR = 'Visitor & Family',
   ATTENDANT = 'Attendant',
-  EMERGENCY = 'Emergency'
+  EMERGENCY = 'Emergency',
+  GENERAL_WARD = 'General Ward'
 }
 
 export type Section = 'A' | 'B' | 'C';
 
-export interface InventoryItem {
-  id: string;
-  name: string;
-  type: string;
-  commonDosage: string;
-  allergyRisk?: string;
-  quantity: number;
-  minThreshold: number;
-}
+
 
 export interface TrackingLog {
   stage: PatientStatus;
@@ -172,11 +171,6 @@ export interface Patient {
   allergies?: string;
   chronicConditions?: string;
   currentMedications?: string;
-  temperature?: string;
-  bloodPressure?: string;
-  pulse?: string;
-  weight?: string;
-  spo2?: string;
   
   // Safety & Compliance (Admin requested)
   isDeleted?: boolean;
@@ -273,6 +267,7 @@ export interface StaffMember {
   rotationPattern?: 'Morning-Night' | 'Fixed-Morning' | 'Fixed-Evening' | 'Fixed-Night';
   lastWeeklyOff?: number;
   hasAppAccess?: boolean;
+  isOnline?: boolean;
 }
 
 export interface Post {
@@ -340,6 +335,62 @@ export interface CustomRole {
   createdAt: number;
 }
 
+export interface InventoryBatch {
+  batchId: string;
+  quantity: number;
+  expiryDate: string;
+  location: { rack: string; shelf: string; box: string; };
+  dateAdded: number;
+}
+
+export interface InventoryItem {
+  id: string;
+  name: string;
+  type?: string;
+  commonDosage?: string;
+  allergyRisk?: string;
+  category: 'Medicine' | 'Consumable' | 'Equipment';
+  batches: InventoryBatch[];
+  totalQuantity: number;
+  minThreshold: number;
+  unit: string;
+  lastUpdated: number;
+}
+
+export interface RadiologyOrder {
+  id: string;
+  patientId: string;
+  patientName: string;
+  testName: string; // e.g. "Chest X-Ray", "MRI Brain"
+  orderedBy: string; // Doctor name
+  orderedAt: number;
+  status: 'pending' | 'completed';
+  resultText?: string;
+  resultImageUrl?: string;
+  completedAt?: number;
+  completedBy?: string; // Radiologist name
+}
+
+export enum UserRole {
+  UNASSIGNED = 'unassigned',
+  GATE = 'gate', // Exit sensors / Entrance
+  RECEPTION = 'reception', // Admission Desk
+  CHECKIN = 'checkin',
+  DOCTOR = 'doctor',
+  MEDICAL = 'medical', // Treatment Station
+  PHARMACY = 'pharmacy', // Pharmacy & Billing
+  WARD_CARE = 'ward_care', // Bed management, Dietary
+  BILLING = 'billing', // Discharge lounge
+  LAB = 'lab', // Laboratory Services
+  RADIOLOGY = 'radiology', // Radiology / RIS
+  INVENTORY = 'inventory', // Store & Inventory Management
+  VISITOR_MGMT = 'visitor_mgmt',
+  ATTENDANT_MGMT = 'attendant_mgmt',
+  PUBLIC = 'public',
+  ADMIN = 'admin',
+  SUPERVISOR = 'supervisor'
+}
+
 export const ROLE_CATEGORIES = [
   {
     label: 'Medical Staff (Doctors)',
@@ -362,6 +413,9 @@ export const ROLE_CATEGORIES = [
     label: 'Allied Medical',
     roles: [
       { id: UserRole.PHARMACY, name: 'Pharmacy & Billing' },
+      { id: UserRole.LAB, name: 'Laboratory Services' },
+      { id: UserRole.RADIOLOGY, name: 'Radiology / RIS' },
+      { id: UserRole.INVENTORY, name: 'Store / Inventory' },
     ]
   },
   {
@@ -439,21 +493,19 @@ export interface SystemThresholds {
   pndtLoggingEnabled: boolean;
 }
 
-export enum UserRole {
-  UNASSIGNED = 'unassigned',
-  GATE = 'gate', // Exit sensors / Entrance
-  RECEPTION = 'reception', // Admission Desk
-  CHECKIN = 'checkin',
-  DOCTOR = 'doctor',
-  MEDICAL = 'medical', // Treatment Station
-  PHARMACY = 'pharmacy', // Pharmacy & Billing
-  WARD_CARE = 'ward_care', // Bed management, Dietary
-  BILLING = 'billing', // Discharge lounge
-  VISITOR_MGMT = 'visitor_mgmt',
-  ATTENDANT_MGMT = 'attendant_mgmt',
-  PUBLIC = 'public',
-  ADMIN = 'admin',
-  SUPERVISOR = 'supervisor'
-}
+
 
 export type Theme = 'light' | 'dark' | 'titanium';
+
+export interface Workstation {
+  id: string;
+  name: string;
+  type: string;
+  status: 'active' | 'inactive' | 'maintenance';
+}
+
+export interface CustomRole {
+  id: string;
+  name: string;
+  permissions: string[];
+}

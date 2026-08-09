@@ -4,6 +4,8 @@ import App from './App';
 import { IntercomProvider } from './src/contexts/IntercomContext';
 import { IntercomOverlay } from './components/IntercomOverlay';
 
+import { ErrorBoundary } from './ErrorBoundary';
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
@@ -12,9 +14,11 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <IntercomProvider>
-      <IntercomOverlay />
-      <App />
-    </IntercomProvider>
+    <ErrorBoundary>
+      <IntercomProvider>
+        <IntercomOverlay />
+        <App />
+      </IntercomProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

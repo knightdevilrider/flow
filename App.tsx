@@ -9,14 +9,15 @@ import {
   Ward,
   DoctorRoster,
   SystemThresholds,
+  InventoryItem,
   AuditLog,
   BillingScheme,
   NABHKPI,
   StaffMember,
-  InventoryItem,
   Workstation,
   CustomRole,
-  ShiftConfig
+  ShiftConfig,
+  RadiologyOrder
 } from './types';
 import { mockFirestore } from './services/mockFirestore';
 import { googleSheetsService } from './services/googleSheets';
@@ -30,9 +31,13 @@ import StaffCheckin from './views/StaffCheckin';
 import StaffDoctor from './views/StaffDoctor';
 import StaffTreatment from './views/StaffTreatment';
 import StaffPharmacy from './views/StaffPharmacy';
+import StaffLab from './views/StaffLab';
+import StaffRadiology from './views/StaffRadiology';
+import StaffInventory from './views/StaffInventory';
 import StaffVisitorMgmt from './views/StaffVisitorMgmt';
 import StaffAttendantMgmt from './views/StaffAttendantMgmt';
 import PublicDisplayView from './views/PublicDisplayView';
+import { GlobalIntercomWidget } from './components/admin/GlobalIntercomWidget';
 
 import StaffWardCare from './views/StaffWardCare';
 import StaffBilling from './views/StaffBilling';
@@ -100,6 +105,7 @@ const App: React.FC = () => {
   ]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [radiologyOrders, setRadiologyOrders] = useState<RadiologyOrder[]>([]);
   const [workstations, setWorkstations] = useState<Workstation[]>([]);
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [customShifts, setCustomShifts] = useState<ShiftConfig[]>([
@@ -181,6 +187,7 @@ const App: React.FC = () => {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     let unsubscribeInventory: (() => void) | undefined;
+    let unsubscribeRadiology: (() => void) | undefined;
     
     const initConnection = () => {
       unsubscribe = mockFirestore.onSnapshot(
@@ -205,12 +212,22 @@ const App: React.FC = () => {
           console.error("Inventory Stream Error:", err);
         }
       );
+
+      unsubscribeRadiology = mockFirestore.onRadiologySnapshot(
+        (data) => {
+          setRadiologyOrders(data);
+        },
+        (err: any) => {
+          console.error("Radiology Stream Error:", err);
+        }
+      );
     };
 
     initConnection();
     return () => {
       if (unsubscribe) unsubscribe();
       if (unsubscribeInventory) unsubscribeInventory();
+      if (unsubscribeRadiology) unsubscribeRadiology();
     };
   }, [isDemoMode]);
 
@@ -476,9 +493,12 @@ const App: React.FC = () => {
         return <StaffGate patients={activePatients} theme={theme} waitingCount={gateCount} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.RECEPTION: return <StaffReception patients={activePatients} theme={theme} doctors={doctors} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.CHECKIN: return <StaffCheckin patients={activePatients} theme={theme} doctors={doctors} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
-      case UserRole.DOCTOR: return <StaffDoctor patients={activePatients} inventory={inventory} theme={theme} doctors={doctors} roster={roster} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.DOCTOR: return <StaffDoctor patients={activePatients} inventory={inventory} radiologyOrders={radiologyOrders} theme={theme} doctors={doctors} roster={roster} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.MEDICAL: return <StaffTreatment patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.PHARMACY: return <StaffPharmacy patients={activePatients} inventory={inventory} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.LAB: return <StaffLab patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.RADIOLOGY: return <StaffRadiology orders={radiologyOrders} theme={theme} isAdmin={isAdminMode} />;
+      case UserRole.INVENTORY: return <StaffInventory inventory={inventory} theme={theme} isAdmin={isAdminMode} />;
       case UserRole.WARD_CARE: return <StaffWardCare patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.BILLING: return <StaffBilling patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.VISITOR_MGMT: return <StaffVisitorMgmt patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
@@ -556,6 +576,15 @@ const App: React.FC = () => {
           theme={theme}
           isAdmin={isAdminMode}
         />
+        {(currentRole || isAdminMode) && currentRole !== UserRole.PUBLIC && (
+          <GlobalIntercomWidget 
+            theme={theme} 
+            currentRole={currentRole as UserRole} 
+            isAdmin={isAdminMode} 
+            doctors={doctors}
+            staff={staff}
+          />
+        )}
       </Layout>
     </div>
   );

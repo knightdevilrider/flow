@@ -28,7 +28,8 @@ import {
   Shift, 
   Theme,
   UserRole,
-  Section
+  Section,
+  ROLE_CATEGORIES
 } from '../types';
 import { db } from '../src/lib/firebase';
 import { mockFirestore } from '../services/mockFirestore';
@@ -525,14 +526,14 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
                                 {ROLE_CATEGORIES.map(category => (
                                   <optgroup key={category.label} label={category.label} className="bg-[#2C2C2E] text-white/50 font-bold">
                                     {category.roles.map(role => (
-                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{(role.name || '').toUpperCase()}</option>
                                     ))}
                                   </optgroup>
                                 ))}
-                                {customRoles.length > 0 && (
+                                {customRoles && customRoles.length > 0 && (
                                   <optgroup label="Custom Roles" className="bg-[#2C2C2E] text-white/50 font-bold">
                                     {customRoles.map(role => (
-                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{role.name.toUpperCase()}</option>
+                                      <option key={role.id} value={role.id} className="bg-[#1C1C1E] text-white">{(role.name || '').toUpperCase()}</option>
                                     ))}
                                   </optgroup>
                                 )}
@@ -630,7 +631,7 @@ const AdminConsole: React.FC<AdminConsoleProps> = ({
                       </tr>
                     </thead>
                     <tbody className={`divide-y divide-white/5 ${s.text}`}>
-                      {rotations.sort((a, b) => a.dayOfWeek - b.dayOfWeek).map(rot => {
+                      {[...rotations].sort((a, b) => a.dayOfWeek - b.dayOfWeek).map(rot => {
                         const p = doctors.find(d => d.id === rot.staffId) || staff.find(st => st.id === rot.staffId);
                         return (
                           <tr key={rot.id} className="hover:bg-white/5 transition-colors">

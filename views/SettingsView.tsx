@@ -27,21 +27,10 @@ import PatientFormModal from '../components/admin/PatientFormModal';
 import DeletePatientModal from '../components/admin/DeletePatientModal';
 import { RoleManagementBoard } from '../components/admin/RoleManagementBoard';
 import { 
-  Users, 
-  Stethoscope, 
-  List, 
-  ClipboardList, 
-  Plus,
-  Trash2,
-  Clock,
-  ShieldCheck,
-  Building2,
-  Zap,
-  Activity,
-  History,
-  Settings as SettingsIcon,
-  Search
+  Users, Building2, Zap, Settings as SettingsIcon, Database, HardDrive, ShieldCheck, 
+  UserPlus, Upload, FileJson, Stethoscope, BriefcaseMedical, LayoutDashboard, History, List, ClipboardList, MessageSquare, Plus, Search, Trash2
 } from 'lucide-react';
+import { useIntercom } from '../src/contexts/IntercomContext';
 
 interface SettingsViewProps {
   theme: Theme;
@@ -68,7 +57,7 @@ interface SettingsViewProps {
   setCustomShifts?: (shifts: ShiftConfig[]) => void;
 }
 
-type Tab = 'STAFF' | 'FACILITY' | 'OPERATIONS' | 'COMPLIANCE' | 'SYSTEM' | 'HISTORY' | 'PATIENTS';
+type Tab = 'STAFF' | 'FACILITY' | 'OPERATIONS' | 'COMPLIANCE' | 'SYSTEM' | 'HISTORY' | 'PATIENTS' | 'INTERCOM';
 type StaffSubTab = 'doctors' | 'staff_list' | 'roles' | 'duty_list';
 
 const SettingsView: React.FC<SettingsViewProps> = ({ 
@@ -77,6 +66,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   customRoles = [], setCustomRoles, customShifts = [], setCustomShifts
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('STAFF');
+  const { alerts } = useIntercom();
   const [staffSubTab, setStaffSubTab] = useState<StaffSubTab>('doctors');
   
   // Modal States
@@ -320,6 +310,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
       { domain: 'Nursing Staff', name: 'OT Nurses', role: UserRole.MEDICAL },
       { domain: 'Allied Medical & Technical Staff', name: 'Lab Technicians', role: UserRole.MEDICAL },
       { domain: 'Allied Medical & Technical Staff', name: 'Radiologists & X-Ray Technicians', role: UserRole.MEDICAL },
+      { domain: 'Allied Medical & Technical Staff', name: 'Lab Technicians', role: UserRole.LAB },
       { domain: 'Allied Medical & Technical Staff', name: 'Pharmacists', role: UserRole.PHARMACY },
       { domain: 'Housekeeping & Cleaning Staff', name: 'Ward Cleaners', role: UserRole.WARD_CARE },
       { domain: 'Housekeeping & Cleaning Staff', name: 'Sanitation Workers', role: UserRole.WARD_CARE },
@@ -412,7 +403,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
             { id: 'OPERATIONS', label: 'Ops', icon: Zap },
             { id: 'COMPLIANCE', label: 'Rules', icon: ShieldCheck },
             { id: 'SYSTEM', label: 'System', icon: SettingsIcon },
-            { id: 'HISTORY', label: 'Logs', icon: History }
+            { id: 'HISTORY', label: 'Logs', icon: History },
+            { id: 'INTERCOM', label: 'Intercom', icon: MessageSquare }
           ].map(tab => (
             <button 
               key={tab.id}
@@ -1066,9 +1058,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     <p className={`text-[10px] font-bold uppercase tracking-widest ${s.sub} opacity-60 mt-1`}>Granular Time-Motion & Accountability Matrix</p>
                   </div>
                 </div>
-                <button className={`w-12 h-12 rounded-full flex items-center justify-center border shadow-inner transition-all hover:scale-110 active:scale-95 ${s.btn}`}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                </button>
               </div>
 
               <div className="mt-4">
@@ -1079,6 +1068,62 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   <h4 className={`text-lg font-black uppercase tracking-widest ${s.text}`}>Archived & Completed Patients</h4>
                 </div>
                 <HistoryLogTable patients={patients} theme={theme} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'INTERCOM' && (
+          <div className="animate-in fade-in zoom-in-95 duration-500">
+            <div className={`p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border shadow-2xl ${s.card} flex flex-col`}>
+              <div className="flex items-center gap-4 mb-10">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-[#0A84FF]/10 flex items-center justify-center shadow-inner">
+                  <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-[#0A84FF]" />
+                </div>
+                <div className="flex flex-col">
+                  <h3 className={`text-xl sm:text-2xl font-black ${s.text} tracking-tight`}>Intercom Logs</h3>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${s.sub} opacity-60 mt-1`}>Admin Review of Internal Communications</p>
+                </div>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-800">
+                      <th className={`p-4 text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Timestamp</th>
+                      <th className={`p-4 text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Sender</th>
+                      <th className={`p-4 text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Recipient</th>
+                      <th className={`p-4 text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Message</th>
+                      <th className={`p-4 text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Severity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alerts.slice().reverse().map(alert => (
+                      <tr key={alert.id} className="border-b border-gray-100 dark:border-gray-900/50 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <td className={`p-4 text-xs font-medium ${s.text}`}>
+                          {new Date(alert.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}
+                        </td>
+                        <td className={`p-4 text-xs font-bold uppercase ${s.text}`}>{alert.sender}</td>
+                        <td className={`p-4 text-xs font-bold uppercase ${s.text}`}>{alert.recipientName}</td>
+                        <td className={`p-4 text-xs ${s.text}`}>{alert.message}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-1 rounded text-[9px] font-black uppercase ${
+                            alert.severity === 'critical' ? 'bg-red-500/10 text-red-500' :
+                            alert.severity === 'warning' ? 'bg-amber-500/10 text-amber-500' :
+                            'bg-blue-500/10 text-blue-500'
+                          }`}>
+                            {alert.severity}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {alerts.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className={`p-8 text-center text-sm font-bold opacity-50 ${s.text}`}>No intercom messages recorded.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

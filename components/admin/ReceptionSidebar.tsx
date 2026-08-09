@@ -184,18 +184,6 @@ export const ReceptionSidebar: React.FC<ReceptionSidebarProps> = ({ patients, do
           <div className="space-y-4 animate-in fade-in duration-300">
             <section className={`p-4 rounded-2xl border ${s.card} ${s.border}`}>
               <div className="flex items-center gap-2 mb-3">
-                <MessageSquare className={`w-4 h-4 ${s.accentText}`} />
-                <h3 className={`text-[10px] font-black uppercase tracking-widest ${s.text}`}>Internal Intercom</h3>
-              </div>
-              <div className={`h-24 rounded-xl border p-2 mb-2 ${s.bg} ${s.border} flex flex-col justify-end`}>
-                <div className="text-[9px] opacity-50 italic pb-1">Pharmacy: "Stock refilled."</div>
-                <div className="text-[9px] opacity-50 italic pb-1">Dr. Smith: "Send next patient."</div>
-              </div>
-              <input type="text" placeholder="Type message..." className={`w-full p-2 rounded-lg text-[10px] outline-none border ${s.bg} ${s.border} ${s.text}`} />
-            </section>
-
-            <section className={`p-4 rounded-2xl border ${s.card} ${s.border}`}>
-              <div className="flex items-center gap-2 mb-3">
                 <Mic className={`w-4 h-4 text-red-500`} />
                 <h3 className={`text-[10px] font-black uppercase tracking-widest ${s.text}`}>PA Announcement</h3>
               </div>

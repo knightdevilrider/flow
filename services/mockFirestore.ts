@@ -1,4 +1,4 @@
-import { Patient, PatientStatus, PatientCategory, TrackingLog, Bed, InventoryItem } from '../types';
+import { Patient, PatientStatus, PatientCategory, TrackingLog, Bed, InventoryItem, RadiologyOrder } from '../types';
 import { db } from '../src/lib/firebase';
 import { 
   collection, 
@@ -106,15 +106,85 @@ export const mockFirestore = {
     return snapshot.docs.map(d => d.data() as InventoryItem);
   },
 
+  onRadiologySnapshot: (callback: (data: RadiologyOrder[]) => void, onError: (err: any) => void) => {
+    if (useLocalStorage) {
+      const refresh = () => {
+        const data = localStorage.getItem('hospital_radiology_demo');
+        callback(data ? JSON.parse(data) : []);
+      };
+      refresh();
+      const interval = setInterval(refresh, 2000);
+      return () => clearInterval(interval);
+    }
+
+    const q = query(collection(db, 'radiology_orders'), orderBy('orderedAt', 'asc'));
+    return onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map(d => ({ ...d.data() } as RadiologyOrder));
+      callback(items);
+    }, onError);
+  },
+
+  getRadiology: async (): Promise<RadiologyOrder[]> => {
+    if (useLocalStorage) {
+      const data = localStorage.getItem('hospital_radiology_demo');
+      return data ? JSON.parse(data) : [];
+    }
+    const snapshot = await getDocs(collection(db, 'radiology_orders'));
+    return snapshot.docs.map(d => d.data() as RadiologyOrder);
+  },
+
   updateInventoryItem: async (id: string, updates: Partial<InventoryItem>) => {
     if (useLocalStorage) {
       const data = localStorage.getItem('hospital_inventory_demo');
-      let inventory: InventoryItem[] = data ? JSON.parse(data) : [];
-      inventory = inventory.map(item => item.id === id ? { ...item, ...updates } : item);
-      localStorage.setItem('hospital_inventory_demo', JSON.stringify(inventory));
+      if (!data) return;
+      let inventory: InventoryItem[] = JSON.parse(data);
+      const index = inventory.findIndex(i => i.id === id);
+      if (index !== -1) {
+        inventory[index] = { ...inventory[index], ...updates };
+        localStorage.setItem('hospital_inventory_demo', JSON.stringify(inventory));
+      }
       return;
     }
     await updateDoc(doc(db, 'inventory', id), updates);
+  },
+
+  dispatchMedicine: async (id: string, requestedQuantity: number) => {
+    // FEFO logic (First-Expiry-First-Out)
+    if (useLocalStorage) {
+      const data = localStorage.getItem('hospital_inventory_demo');
+      if (!data) return;
+      let inventory: InventoryItem[] = JSON.parse(data);
+      const index = inventory.findIndex(i => i.id === id);
+      if (index !== -1) {
+        let item = inventory[index];
+        let remainingToDeduct = requestedQuantity;
+        
+        // Sort batches by expiry date (oldest first)
+        item.batches.sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+        
+        for (let i = 0; i < item.batches.length; i++) {
+          if (remainingToDeduct <= 0) break;
+          
+          if (item.batches[i].quantity > 0) {
+            if (item.batches[i].quantity >= remainingToDeduct) {
+              item.batches[i].quantity -= remainingToDeduct;
+              remainingToDeduct = 0;
+            } else {
+              remainingToDeduct -= item.batches[i].quantity;
+              item.batches[i].quantity = 0;
+            }
+          }
+        }
+        
+        // Recalculate total quantity
+        item.totalQuantity = item.batches.reduce((sum, b) => sum + b.quantity, 0);
+        
+        inventory[index] = item;
+        localStorage.setItem('hospital_inventory_demo', JSON.stringify(inventory));
+      }
+      return;
+    }
+    // Implement Firestore version if needed, but we rely on local storage for demo
   },
 
   addInventoryItem: async (item: Omit<InventoryItem, 'id'>) => {
@@ -342,17 +412,30 @@ export const mockFirestore = {
       const existingInventory = localStorage.getItem('hospital_inventory_demo');
       if (!existingInventory || JSON.parse(existingInventory).length === 0) {
         const INDIAN_DRUG_INDEX: InventoryItem[] = [
-          { id: '1', name: 'Paracetamol', type: 'Analgesic/Antipyretic', commonDosage: '650mg', quantity: 250, minThreshold: 50 },
-          { id: '2', name: 'Amoxicillin + Clavulanic Acid', type: 'Antibiotic', commonDosage: '625mg', allergyRisk: 'Penicillin', quantity: 15, minThreshold: 20 },
-          { id: '3', name: 'Azithromycin', type: 'Antibiotic', commonDosage: '500mg', quantity: 120, minThreshold: 40 },
-          { id: '4', name: 'Pantoprazole', type: 'Antacid', commonDosage: '40mg', quantity: 300, minThreshold: 50 },
-          { id: '5', name: 'Domperidone + Pantoprazole', type: 'Antiemetic/Antacid', commonDosage: '30mg/40mg', quantity: 180, minThreshold: 50 },
-          { id: '6', name: 'Metformin', type: 'Antidiabetic', commonDosage: '500mg', quantity: 80, minThreshold: 100 },
-          { id: '7', name: 'Telmisartan', type: 'Antihypertensive', commonDosage: '40mg', quantity: 0, minThreshold: 50 },
-          { id: '8', name: 'Amlodipine', type: 'Antihypertensive', commonDosage: '5mg', quantity: 200, minThreshold: 50 },
-          { id: '9', name: 'Levocetirizine', type: 'Antihistamine', commonDosage: '5mg', quantity: 45, minThreshold: 50 },
-          { id: '10', name: 'Ibuprofen + Paracetamol', type: 'NSAID', commonDosage: '400mg/325mg', quantity: 110, minThreshold: 50 },
-        ];
+  { 
+    id: '1', name: 'Paracetamol', type: 'Analgesic/Antipyretic', commonDosage: '650mg', category: 'Medicine', 
+    batches: [{ batchId: 'B-001', quantity: 250, expiryDate: '2027-01', location: { rack: 'A', shelf: '1', box: '1' }, dateAdded: Date.now() }], 
+    totalQuantity: 250, minThreshold: 50, unit: 'strips', lastUpdated: Date.now() 
+  },
+  { 
+    id: '2', name: 'Amoxicillin + Clavulanic Acid', type: 'Antibiotic', commonDosage: '625mg', allergyRisk: 'Penicillin', category: 'Medicine', 
+    batches: [{ batchId: 'B-002', quantity: 15, expiryDate: '2026-11', location: { rack: 'A', shelf: '2', box: '3' }, dateAdded: Date.now() }], 
+    totalQuantity: 15, minThreshold: 20, unit: 'strips', lastUpdated: Date.now() 
+  },
+  { 
+    id: '3', name: 'Azithromycin', type: 'Antibiotic', commonDosage: '500mg', category: 'Medicine', 
+    batches: [{ batchId: 'B-003', quantity: 120, expiryDate: '2028-05', location: { rack: 'B', shelf: '1', box: '2' }, dateAdded: Date.now() }], 
+    totalQuantity: 120, minThreshold: 40, unit: 'strips', lastUpdated: Date.now() 
+  },
+  { 
+    id: '4', name: 'Pantoprazole', type: 'Antacid', commonDosage: '40mg', category: 'Medicine', 
+    batches: [
+      { batchId: 'B-004A', quantity: 100, expiryDate: '2026-12', location: { rack: 'C', shelf: '1', box: '1' }, dateAdded: Date.now() },
+      { batchId: 'B-004B', quantity: 200, expiryDate: '2028-02', location: { rack: 'C', shelf: '1', box: '2' }, dateAdded: Date.now() }
+    ], 
+    totalQuantity: 300, minThreshold: 50, unit: 'strips', lastUpdated: Date.now() 
+  }
+];
         localStorage.setItem('hospital_inventory_demo', JSON.stringify(INDIAN_DRUG_INDEX));
       }
     }

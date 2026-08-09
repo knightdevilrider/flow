@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Patient, PatientStatus, Doctor, Theme, PatientCategory, DoctorRoster, InventoryItem } from '../types';
+import { Patient, PatientStatus, Doctor, Theme, PatientCategory, DoctorRoster, InventoryItem, RadiologyOrder } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
 import { TREATMENT_TYPES } from '../constants';
 import PatientContactModal from '../components/PatientContactModal';
@@ -22,11 +22,12 @@ interface StaffDoctorProps {
   roster: DoctorRoster[];
   isAdmin?: boolean;
   inventory?: InventoryItem[];
+  radiologyOrders?: RadiologyOrder[];
   onEditPatient?: (p: Patient) => void;
   onDeletePatient?: (p: Patient) => void;
 }
 
-const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: allDoctors, roster, inventory = [], isAdmin, onEditPatient, onDeletePatient }) => {
+const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: allDoctors, roster, inventory = [], radiologyOrders = [], isAdmin, onEditPatient, onDeletePatient }) => {
   const [activeDoctorId, setActiveDoctorId] = useState<string>('');
   const [prescription, setPrescription] = useState('');
   const [diagnosisICD, setDiagnosisICD] = useState('');
@@ -151,6 +152,8 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
     if (directive === 'Referred to Treatment') {
       finalStatus = PatientStatus.TREATMENT;
       finalTreatmentType = targetTreatmentType;
+    } else if (directive === 'Send to Lab') {
+      finalStatus = PatientStatus.LAB_WAITING;
     }
 
     await mockFirestore.updatePatientAudited(currentPatient.id, {
@@ -370,6 +373,31 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                   )}
                   
                     <div className="space-y-4">
+                      <div className="pt-6 border-t border-inherit/10">
+                        <h4 className={`text-xs font-black uppercase tracking-widest ${s.header} mb-4 flex items-center gap-2`}>
+                          Clinical History
+                          <span className={`px-2 py-0.5 rounded text-[8px] ${s.btn} border border-inherit`}>Live</span>
+                        </h4>
+                        
+                        {Array.isArray(currentPatient.labTests) && currentPatient.labTests.length > 0 && (
+                          <div className="mb-6 space-y-2">
+                            <h5 className={`text-[10px] font-black uppercase tracking-widest text-[#0A84FF]`}>Lab Reports</h5>
+                            <div className={`p-4 rounded-xl border ${s.btn} border-inherit/10`}>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {currentPatient.labTests.map((test: string) => (
+                                  <span key={test} className="px-2 py-1 rounded bg-[#0A84FF]/10 text-[#0A84FF] text-[9px] font-bold uppercase tracking-widest">{test}</span>
+                                ))}
+                              </div>
+                              {currentPatient.labResults ? (
+                                <div className={`text-xs font-medium ${s.header}`}>{currentPatient.labResults}</div>
+                              ) : (
+                                <div className={`text-xs font-medium italic opacity-50 ${s.sub}`}>Results Pending...</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className={`block text-[8px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Department</label>
@@ -393,6 +421,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                             className={`w-full rounded-xl px-4 py-3 font-black text-[10px] border-2 outline-none transition-all ${s.input}`}
                           >
                             <option>Referred to Treatment</option>
+                            <option>Send to Lab</option>
                             <option>Referred to Cross-Consult</option>
                             <option>Discharge</option>
                           </select>

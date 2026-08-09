@@ -15,8 +15,10 @@ const DoctorTable: React.FC<DoctorTableProps> = ({ doctors, onEdit, onDelete, th
   const [statusFilter, setStatusFilter] = useState('');
 
   const filteredDoctors = doctors.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         doc.specialty?.toLowerCase().includes(searchTerm.toLowerCase());
+    const docName = doc.name || '';
+    const docSpecialty = doc.specialty || '';
+    const matchesSearch = docName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         docSpecialty.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSpecialty = specialtyFilter === '' || doc.specialty === specialtyFilter;
     const matchesStatus = statusFilter === '' || doc.status === statusFilter;
     return matchesSearch && matchesSpecialty && matchesStatus;

@@ -17,7 +17,7 @@ const StaffRadiology: React.FC<StaffRadiologyProps> = ({ orders, theme, isAdmin 
   );
 
   return (
-    <div className="h-full flex flex-col p-6 overflow-y-auto">
+    <div className="h-full flex flex-col p-3 sm:p-6 overflow-y-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -41,7 +41,7 @@ const StaffRadiology: React.FC<StaffRadiologyProps> = ({ orders, theme, isAdmin 
       </div>
 
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden flex-1">
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-x-auto border-inherit rounded-xl">
           <table className="w-full text-left">
             <thead className="bg-slate-800 border-b border-slate-700">
               <tr>
@@ -97,7 +97,7 @@ const StaffRadiology: React.FC<StaffRadiologyProps> = ({ orders, theme, isAdmin 
               ))}
               {filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
+                  <td colSpan={5} className="p-4 sm:p-8 text-center text-slate-400">
                     No radiology orders found.
                   </td>
                 </tr>

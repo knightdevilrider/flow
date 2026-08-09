@@ -32,7 +32,7 @@ const BillingCard: React.FC<{
   const total = billForm.bed + billForm.meds + billForm.consult + billForm.proc + billForm.other - billForm.discount;
 
   return (
-    <div className={`p-6 rounded-[2.5rem] border transition-all shadow-xl space-y-6 ${s.card}`}>
+    <div className={`p-3 sm:p-6 rounded-[2.5rem] border transition-all shadow-xl space-y-6 ${s.card}`}>
       <div className="flex justify-between items-start">
         <div onClick={() => onView(patient)} className="cursor-pointer hover:text-blue-500 transition-colors">
           <h4 className={`text-xl font-black tracking-tight ${s.header}`}>{patient.name}</h4>
@@ -176,9 +176,9 @@ const StaffBilling: React.FC<StaffBillingProps> = ({ patients, theme, isAdmin, o
       </div>
 
       {activeTab === 'DISCHARGE' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-6">
           {/* Active Wards -> Lounge */}
-          <div className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
+          <div className={`p-3 sm:p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className={`text-sm font-black uppercase tracking-tight flex items-center gap-3 ${s.header}`}>
                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm border shadow-inner ${s.badge}`}>1</span>
@@ -214,7 +214,7 @@ const StaffBilling: React.FC<StaffBillingProps> = ({ patients, theme, isAdmin, o
           </div>
 
           {/* Lounge -> Final Bill */}
-          <div className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
+          <div className={`p-3 sm:p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className={`text-sm font-black uppercase tracking-tight flex items-center gap-3 ${s.header}`}>
                  <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-sm border shadow-inner ${s.badge}`}>2</span>
@@ -238,7 +238,7 @@ const StaffBilling: React.FC<StaffBillingProps> = ({ patients, theme, isAdmin, o
                 const total = billForm.bed + billForm.meds + billForm.consult + billForm.proc + billForm.other - billForm.discount;
 
                 return (
-                  <div key={p.id} className={`p-6 rounded-[2.5rem] border transition-all shadow-xl space-y-6 ${s.card}`}>
+                  <div key={p.id} className={`p-3 sm:p-6 rounded-[2.5rem] border transition-all shadow-xl space-y-6 ${s.card}`}>
                     <div className="flex justify-between items-start">
                       <div onClick={() => setViewingPatient(p)} className="cursor-pointer hover:text-blue-500 transition-colors">
                         <h4 className={`text-xl font-black tracking-tight ${s.header}`}>{p.name}</h4>
@@ -338,7 +338,7 @@ const StaffBilling: React.FC<StaffBillingProps> = ({ patients, theme, isAdmin, o
 
       {activeTab === 'EXIT_SENSORS' && (
         <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 space-y-6">
-          <section className={`p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border shadow-xl relative overflow-hidden ${s.card}`}>
+          <section className={`p-3 sm:p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border shadow-xl relative overflow-hidden ${s.card}`}>
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h3 className={`text-xl sm:text-3xl font-black uppercase tracking-tighter text-red-500`}>EXIT MONITOR</h3>
@@ -350,15 +350,15 @@ const StaffBilling: React.FC<StaffBillingProps> = ({ patients, theme, isAdmin, o
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={`p-6 rounded-[2rem] border-2 border-dashed border-red-500/30 text-center group transition-all hover:bg-red-500/5 ${s.btn}`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-6">
+              <div className={`p-3 sm:p-6 rounded-[2rem] border-2 border-dashed border-red-500/30 text-center group transition-all hover:bg-red-500/5 ${s.btn}`}>
                 <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🚨</div>
                 <h4 className="text-red-500 text-lg font-black uppercase tracking-tight mb-2 leading-none">RFID BREACH</h4>
                 <p className={`text-[10px] mb-6 font-black uppercase tracking-widest opacity-60 leading-relaxed ${s.header}`}>Gate Alpha breach detected.</p>
                 <button className={`w-full px-6 py-3 rounded-xl font-black uppercase tracking-widest text-[8px] shadow-lg shadow-red-500/20 active:scale-95 ${theme === 'light' ? 'bg-red-500 text-white' : 'bg-red-600 text-white'}`}>DEPLOY</button>
               </div>
               
-              <div className={`p-6 rounded-[2rem] border text-center flex flex-col shadow-inner ${s.card}`}>
+              <div className={`p-3 sm:p-6 rounded-[2rem] border text-center flex flex-col shadow-inner ${s.card}`}>
                 <div className="text-5xl mb-4">✅</div>
                 <h4 className={`text-lg font-black uppercase tracking-tight mb-4 ${s.accent}`}>CLEARED</h4>
                 <div className="space-y-2 flex-1">

@@ -118,10 +118,10 @@ const StaffLab: React.FC<StaffLabProps> = ({ patients, theme, isAdmin, onEditPat
   };
 
   return (
-    <div className="h-full flex flex-col md:flex-row gap-6">
+    <div className="h-full flex flex-col md:flex-row gap-3 sm:p-6">
       {/* Left Column - Processing Queue */}
       <div className="flex-1 flex flex-col min-w-0 max-w-full md:max-w-[40%] xl:max-w-md h-full">
-        <div className={`p-4 sm:p-6 rounded-3xl border flex-1 flex flex-col shadow-sm ${s.card}`}>
+        <div className={`p-4 sm:p-3 sm:p-6 rounded-3xl border flex-1 flex flex-col shadow-sm ${s.card}`}>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className={`text-xl sm:text-2xl font-black uppercase tracking-tight flex items-center gap-2 ${s.header}`}>
@@ -190,7 +190,7 @@ const StaffLab: React.FC<StaffLabProps> = ({ patients, theme, isAdmin, onEditPat
       {/* Right Column - Lab Action Panel */}
       <div className="flex-[2] h-full">
         {viewingPatient ? (
-          <div className={`p-4 sm:p-6 lg:p-8 rounded-3xl border shadow-xl h-full flex flex-col ${s.card} animate-in fade-in slide-in-from-right-4 duration-500`}>
+          <div className={`p-4 sm:p-3 sm:p-6 lg:p-4 sm:p-8 rounded-3xl border shadow-xl h-full flex flex-col ${s.card} animate-in fade-in slide-in-from-right-4 duration-500`}>
             
             <div className="flex justify-between items-start mb-8">
               <div>
@@ -270,7 +270,7 @@ const StaffLab: React.FC<StaffLabProps> = ({ patients, theme, isAdmin, onEditPat
 
           </div>
         ) : (
-          <div className={`h-full rounded-3xl border flex flex-col items-center justify-center text-center p-6 ${s.card}`}>
+          <div className={`h-full rounded-3xl border flex flex-col items-center justify-center text-center p-3 sm:p-6 ${s.card}`}>
             <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 bg-gradient-to-br from-[#0A84FF]/20 to-purple-500/20`}>
               <FlaskConical className={`w-10 h-10 ${s.accent}`} />
             </div>

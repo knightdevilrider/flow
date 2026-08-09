@@ -156,7 +156,7 @@ const StaffWardCare: React.FC<StaffWardCareProps> = ({ patients, theme, isAdmin,
 
       {activeTab === 'DIETARY' && (
         <div className="max-w-4xl mx-auto">
-          <div className={`p-8 sm:p-12 rounded-[2.5rem] border shadow-xl text-center space-y-8 ${s.card}`}>
+          <div className={`p-4 sm:p-8 sm:p-12 rounded-[2.5rem] border shadow-xl text-center space-y-8 ${s.card}`}>
             <div className="text-6xl animate-bounce">🥗</div>
             <h3 className={`text-xl sm:text-3xl font-black uppercase tracking-tighter ${s.header}`}>DIETARY COMPLIANCE</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -179,7 +179,7 @@ const StaffWardCare: React.FC<StaffWardCareProps> = ({ patients, theme, isAdmin,
 
       {activeTab === 'MEDS' && (
         <div className="max-w-xl mx-auto">
-           <div className={`p-8 rounded-[2rem] border shadow-xl ${s.card}`}>
+           <div className={`p-4 sm:p-8 rounded-[2rem] border shadow-xl ${s.card}`}>
             <div className="flex items-center gap-4 mb-8">
               <div className="text-4xl">💊</div>
               <h3 className={`text-xl font-black uppercase tracking-tight ${s.header}`}>MEDICATION LOG</h3>
@@ -220,7 +220,7 @@ const StaffWardCare: React.FC<StaffWardCareProps> = ({ patients, theme, isAdmin,
       )}
 
       {activeTab === 'ROLLCALL' && (
-        <div className={`p-6 sm:p-10 rounded-[2.5rem] border shadow-xl ${s.card}`}>
+        <div className={`p-3 sm:p-6 sm:p-10 rounded-[2.5rem] border shadow-xl ${s.card}`}>
           <div className="flex justify-between items-center mb-8">
             <h3 className={`text-xl font-black uppercase tracking-tighter ${s.header}`}>ROLL-CALL</h3>
             <div className={`px-4 py-1.5 rounded-lg border text-xs font-black shadow-inner tracking-tight ${s.badge}`}>

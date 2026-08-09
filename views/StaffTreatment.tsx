@@ -161,7 +161,7 @@ const StaffTreatment: React.FC<StaffTreatmentProps> = ({ patients, theme, isAdmi
           <h2 className={`text-4xl sm:text-6xl font-black mb-4 uppercase tracking-tighter leading-none ${s.header}`}>Medical Station</h2>
           <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] opacity-40 ${s.sub}`}>Select your designated station</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-3 sm:p-6">
           {TREATMENT_TYPES.map(t => (
             <button
               key={t}
@@ -178,7 +178,7 @@ const StaffTreatment: React.FC<StaffTreatmentProps> = ({ patients, theme, isAdmi
   }
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-4 gap-3 sm:p-6">
       <PatientContactModal 
         patient={viewingPatient} 
         onClose={() => setViewingPatient(null)} 
@@ -187,13 +187,13 @@ const StaffTreatment: React.FC<StaffTreatmentProps> = ({ patients, theme, isAdmi
         onDelete={onDeletePatient}
       />
       <div className="lg:col-span-3 space-y-6">
-        <section className={`p-6 sm:p-8 rounded-[2rem] border shadow-xl relative overflow-hidden ${s.card}`}>
+        <section className={`p-3 sm:p-6 sm:p-4 sm:p-8 rounded-[2rem] border shadow-xl relative overflow-hidden ${s.card}`}>
           <div className={`absolute top-0 right-0 px-6 py-2 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-2xl shadow-lg bg-cyan-600`}>
             Clinical Lab / Investigation
           </div>
           
           {currentPatient ? (
-            <div className="flex flex-col sm:flex-row gap-8 items-center animate-in slide-in-from-bottom-4">
+            <div className="flex flex-col sm:flex-row gap-4 sm:p-8 items-center animate-in slide-in-from-bottom-4">
               <div 
                 onClick={() => setViewingPatient(currentPatient)}
                 className={`w-32 h-32 sm:w-48 sm:h-48 rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden border-4 shadow-lg shrink-0 transition-transform cursor-pointer hover:scale-105 active:scale-95 ${theme === 'light' ? 'border-white' : 'border-[#333]'}`}
@@ -215,7 +215,7 @@ const StaffTreatment: React.FC<StaffTreatmentProps> = ({ patients, theme, isAdmi
                   <p className={`text-[8px] font-black uppercase tracking-widest mt-2 ${s.sub}`}>ID: {currentPatient.id} • {isLabMode ? 'STG 5: INVESTIGATION' : 'STG 8: PHARMACY'}</p>
                 </div>
                 
-                <div className={`p-6 rounded-2xl border-2 shadow-inner group transition-all ${s.btn}`}>
+                <div className={`p-3 sm:p-6 rounded-2xl border-2 shadow-inner group transition-all ${s.btn}`}>
                   <h4 className={`text-[8px] font-black uppercase tracking-widest mb-2 opacity-40 ${s.sub}`}>Doctor's Directive</h4>
                   <p className={`text-lg sm:text-xl font-black tracking-tight leading-tight ${s.header}`}>"{currentPatient.directive}"</p>
                 </div>
@@ -265,7 +265,7 @@ const StaffTreatment: React.FC<StaffTreatmentProps> = ({ patients, theme, isAdmi
           )}
         </section>
 
-        <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
+        <section className={`p-3 sm:p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
           <div className="flex justify-between items-center mb-4">
             <h3 className={`text-xs font-black uppercase tracking-tight ${s.header}`}>
               Supply Queue ({queue.length})
@@ -320,7 +320,7 @@ const StaffTreatment: React.FC<StaffTreatmentProps> = ({ patients, theme, isAdmi
       </div>
 
       <div className="space-y-6">
-        <section className={`p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
+        <section className={`p-3 sm:p-6 rounded-[2rem] border shadow-lg ${s.card}`}>
           <h3 className={`text-[10px] font-black uppercase tracking-widest mb-4 text-red-500`}>MISSING</h3>
           <div className="space-y-2">
             {absentList.length > 0 ? absentList.slice(0, 4).map(p => (

@@ -286,7 +286,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
       {/* ================= COLUMN 2: ACTION DESK (50%) ================= */}
       <div className={`flex-1 rounded-3xl border shadow-xl flex flex-col overflow-hidden ${s.card}`}>
         {message && (
-           <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-white px-6 py-2 rounded-full text-xs font-black tracking-widest shadow-2xl animate-in slide-in-from-top-4">
+           <div className="absolute top-3 sm:p-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-white px-6 py-2 rounded-full text-xs font-black tracking-widest shadow-2xl animate-in slide-in-from-top-4">
              {message}
            </div>
         )}
@@ -294,7 +294,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
         {viewingPatient ? (
           <>
             {/* Header / Demographics */}
-            <div className={`p-6 border-b ${s.border} ${s.bg}`}>
+            <div className={`p-3 sm:p-6 border-b ${s.border} ${s.bg}`}>
               <div className="flex items-start justify-between mb-4">
                 <div className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${viewingPatient.status === PatientStatus.MISSED_TURN ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'}`}>
                   {viewingPatient.status === PatientStatus.MISSED_TURN ? 'Penalty Box (Missed Turn)' : 'Active at Desk'}
@@ -313,7 +313,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
                 )}
               </div>
 
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3 sm:p-6">
                 <div className={`w-24 h-24 rounded-[2rem] border-4 shadow-lg overflow-hidden shrink-0 ${theme === 'light' ? 'border-white' : 'border-[#1C1C1E]'}`}>
                   {viewingPatient.photo ? (
                     <img src={viewingPatient.photo} className="w-full h-full object-cover" />
@@ -379,10 +379,10 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
                   ))}
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-8 custom-scrollbar">
                   {activeActionTab === 'opd' && (
                     <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className="grid grid-cols-2 gap-6">
+                      <div className="grid grid-cols-2 gap-3 sm:p-6">
                         {/* Assign Doctor */}
                         <div className="space-y-3">
                           <label className={`text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Assign Consultant</label>
@@ -469,7 +469,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
 
                       {/* Dynamic UPI Mock */}
                       {paymentMethod === 'upi' && (
-                        <div className={`p-4 rounded-2xl border flex items-center gap-6 animate-in slide-in-from-top-2 ${s.card} ${s.border}`}>
+                        <div className={`p-4 rounded-2xl border flex items-center gap-3 sm:p-6 animate-in slide-in-from-top-2 ${s.card} ${s.border}`}>
                           <div className="w-24 h-24 bg-white p-2 rounded-xl border-2 border-purple-500 flex items-center justify-center">
                             <QrCode className="w-full h-full text-purple-900" />
                           </div>
@@ -484,7 +484,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
 
                   {activeActionTab === 'ipd' && (
                     <div className="space-y-6 animate-in fade-in duration-300">
-                      <div className={`p-6 rounded-3xl border flex items-center gap-4 ${s.card} ${s.border}`}>
+                      <div className={`p-3 sm:p-6 rounded-3xl border flex items-center gap-4 ${s.card} ${s.border}`}>
                         <BedDouble className={`w-8 h-8 ${s.accentText}`} />
                         <div>
                           <h3 className={`text-sm font-black uppercase tracking-widest ${s.text}`}>Admit to IPD</h3>
@@ -513,7 +513,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-50">
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4 sm:p-8 opacity-50">
                 <AlertTriangle className={`w-20 h-20 mb-6 text-red-500`} />
                 <h2 className={`text-2xl font-black mb-2 ${s.text}`}>Patient Not Present</h2>
                 <p className={`text-sm font-bold max-w-sm ${s.sub}`}>This patient missed their turn. Click the Reinstate button above to put them back into the 2nd position of the queue.</p>
@@ -521,7 +521,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
             )}
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 opacity-50">
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-4 sm:p-8 opacity-50">
             <PlayCircle className={`w-20 h-20 mb-6 ${s.sub}`} />
             <h2 className={`text-2xl font-black mb-2 ${s.text}`}>Ready for Next Patient</h2>
             <p className={`text-sm font-bold max-w-sm ${s.sub}`}>System is locked to strict First-Come-First-Serve mode. Click "Auto-Call Next" in the inbox to process the oldest token.</p>

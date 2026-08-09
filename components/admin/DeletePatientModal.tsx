@@ -44,8 +44,8 @@ const DeletePatientModal: React.FC<DeletePatientModalProps> = ({ isOpen, onClose
   const s = themeStyles[theme];
 
   return (
-    <div className={`fixed inset-0 z-[120] flex items-center justify-center p-6 backdrop-blur-xl ${s.bg}`}>
-      <div className={`w-full max-w-md rounded-[2.5rem] border p-8 shadow-2xl transition-all ${s.card}`}>
+    <div className={`fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl ${s.bg}`}>
+      <div className={`w-full max-w-md rounded-[2.5rem] border p-5 sm:p-8 shadow-2xl transition-all ${s.card}`}>
         <div className="flex flex-col items-center text-center mb-8">
           <div className="w-20 h-20 rounded-3xl bg-red-500/10 flex items-center justify-center text-4xl mb-6 border border-red-500/20 shadow-inner">
             <ShieldAlert className="w-10 h-10 text-red-500" />

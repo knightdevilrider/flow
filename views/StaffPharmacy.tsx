@@ -90,9 +90,9 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
       </div>
 
       {activeTab === 'billing' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:p-6">
           <div className="lg:col-span-8 space-y-6">
-            <section className={`p-8 rounded-[2rem] border shadow-lg ${themeStyles.card}`}>
+            <section className={`p-4 sm:p-8 rounded-[2rem] border shadow-lg ${themeStyles.card}`}>
               {viewingPatient ? (
                 <div className="space-y-6">
                   <div className="flex justify-between items-center pb-6 border-b border-inherit">
@@ -127,7 +127,7 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            <section className={`p-6 rounded-[2rem] border shadow-lg ${themeStyles.card}`}>
+            <section className={`p-3 sm:p-6 rounded-[2rem] border shadow-lg ${themeStyles.card}`}>
               <h3 className={`text-xs font-black uppercase tracking-widest mb-4 ${themeStyles.sub}`}>Medicine Queue ({queue.length})</h3>
               <div className="space-y-3">
                 {queue.map((p, i) => (
@@ -147,12 +147,12 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
       )}
 
       {activeTab === 'inventory' && (
-        <section className={`p-8 rounded-[2rem] border shadow-lg ${themeStyles.card}`}>
+        <section className={`p-4 sm:p-8 rounded-[2rem] border shadow-lg ${themeStyles.card}`}>
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-black tracking-tight">Live Inventory Management</h3>
           </div>
           
-          <div className="overflow-x-auto">
+          <div className="w-full overflow-x-auto border-inherit rounded-xl">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-inherit">
@@ -180,7 +180,7 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
                     </tr>
                     {expandedDrug === item.id && (
                       <tr className="bg-black/5 dark:bg-white/5">
-                        <td colSpan={4} className="p-6">
+                        <td colSpan={4} className="p-3 sm:p-6">
                           <h4 className={`text-[10px] font-black uppercase tracking-widest mb-4 ${themeStyles.sub}`}>Physical Batches Tracking (FEFO)</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {item.batches && item.batches.map(b => (
@@ -215,7 +215,7 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
       {/* Add Batch Modal */}
       {showAddBatch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <form onSubmit={handleAddBatch} className={`w-full max-w-md p-6 rounded-3xl shadow-2xl space-y-6 ${themeStyles.card}`}>
+          <form onSubmit={handleAddBatch} className={`w-full max-w-md p-3 sm:p-6 rounded-3xl shadow-2xl space-y-6 ${themeStyles.card}`}>
             <div>
               <h3 className="text-xl font-black tracking-tight">Inward Stock Entry</h3>
               <p className={`text-xs mt-1 ${themeStyles.sub}`}>Adding batch to {showAddBatch.name}</p>

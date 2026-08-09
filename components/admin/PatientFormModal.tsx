@@ -122,8 +122,8 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
   };
 
   return (
-    <div className={`fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md ${s.bg}`}>
-      <div className={`w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border shadow-2xl p-6 sm:p-10 ${s.card}`}>
+    <div className={`fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-4 sm:p-6 backdrop-blur-md ${s.bg}`}>
+      <div className={`w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[2.5rem] border shadow-2xl p-4 sm:p-6 sm:p-4 sm:p-6 sm:p-10 ${s.card}`}>
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className={`text-2xl sm:text-3xl font-black uppercase tracking-tighter ${s.text}`}>
@@ -146,7 +146,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${s.text}`}>Personal Details</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Full Name</label>
                 <div className="relative">
@@ -181,7 +181,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Contact Number</label>
                 <div className="relative">
@@ -215,7 +215,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Area</label>
                 <AreaAutocomplete 
@@ -238,7 +238,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Geographic Zone</label>
                 <select
@@ -295,7 +295,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${s.text}`}>Medical History & Vitals</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Blood Group</label>
                 <select
@@ -316,7 +316,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Chronic Conditions</label>
                 <input
@@ -343,7 +343,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] ${s.text}`}>Visit & Admission Details</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Admission Type</label>
                 <select
@@ -377,7 +377,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6">
               <div className="space-y-2">
                 <label className={`text-[9px] font-black uppercase tracking-widest ml-1 ${s.label}`}>Assigned Room / Bed</label>
                 <div className="relative">

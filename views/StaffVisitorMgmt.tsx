@@ -74,8 +74,8 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients, theme, is
 
   return (
     <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className={`p-8 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border shadow-2xl relative overflow-hidden ${s.card}`}>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-12">
+      <div className={`p-4 sm:p-8 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border shadow-2xl relative overflow-hidden ${s.card}`}>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:p-6 mb-12">
           <div>
             <h3 className={`text-xl sm:text-3xl font-black uppercase tracking-tight ${s.header}`}>PERIMETER GATE SIMULATION</h3>
             <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] opacity-40 mt-2 ${s.sub}`}>Direct Hardware level turnstile logic</p>
@@ -86,12 +86,12 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients, theme, is
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-3 sm:p-6">
           {patients.filter(p => [PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED].includes(p.status)).map(p => (
             <button 
               key={p.id}
               onClick={() => handleScanTurnstile(p.id)}
-              className={`p-6 rounded-[2rem] border-2 transition-all text-center group active:scale-95 shadow-md hover:shadow-xl ${s.btn}`}
+              className={`p-3 sm:p-6 rounded-[2rem] border-2 transition-all text-center group active:scale-95 shadow-md hover:shadow-xl ${s.btn}`}
             >
               <p className={`text-[10px] font-black uppercase opacity-40 mb-2 truncate group-hover:opacity-100 transition-opacity ${s.sub}`}>{p.name}</p>
               <p className={`text-xs font-black tracking-tight leading-tight ${s.header}`}>SCAN VISITOR<br/>QR PASS</p>
@@ -106,7 +106,7 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients, theme, is
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-8 sm:gap-12">
         <div className="lg:col-span-2 space-y-6 pr-4">
           <div className="flex items-center justify-between mb-4 px-2">
             <h3 className={`text-xl sm:text-2xl font-black uppercase tracking-tight ${s.header}`}>ACTIVE VISITS ({activeVisitors.length})</h3>
@@ -119,9 +119,9 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients, theme, is
               <div 
                 key={visitor.id}
                 onClick={() => setSelectedVisitor(visitor)}
-                className={`p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border-2 transition-all cursor-pointer group flex flex-col sm:flex-row items-center justify-between gap-8 shadow-lg hover:shadow-2xl ${s.card} ${selectedVisitor?.id === visitor.id ? 'ring-4 ring-[#0A84FF] scale-[1.02]' : 'hover:scale-[1.01] active:scale-95'}`}
+                className={`p-3 sm:p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3.5rem] border-2 transition-all cursor-pointer group flex flex-col sm:flex-row items-center justify-between gap-4 sm:p-8 shadow-lg hover:shadow-2xl ${s.card} ${selectedVisitor?.id === visitor.id ? 'ring-4 ring-[#0A84FF] scale-[1.02]' : 'hover:scale-[1.01] active:scale-95'}`}
               >
-                <div className="flex items-center gap-8 w-full sm:w-auto">
+                <div className="flex items-center gap-4 sm:p-8 w-full sm:w-auto">
                   <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border-4 shadow-xl transition-transform group-hover:rotate-3 ${s.btn}`}>
                     {visitor.photo ? (
                       <img src={visitor.photo} alt={visitor.name} className="w-full h-full object-cover" />
@@ -171,17 +171,17 @@ const StaffVisitorMgmt: React.FC<StaffVisitorMgmtProps> = ({ patients, theme, is
                 ) : (
                   <div className={`w-full h-full flex items-center justify-center text-[10rem] ${s.sub}`}>👤</div>
                 )}
-                <div className="absolute top-8 right-8 px-6 py-2 bg-[#0A84FF] text-white text-[10px] font-black rounded-full shadow-2xl shadow-[#0A84FF]/50 uppercase tracking-[0.3em]">
+                <div className="absolute top-4 sm:p-8 right-8 px-6 py-2 bg-[#0A84FF] text-white text-[10px] font-black rounded-full shadow-2xl shadow-[#0A84FF]/50 uppercase tracking-[0.3em]">
                   BIOMETRIC VERIFIED
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 mb-12">
-                <div className={`p-6 rounded-[2rem] border-2 shadow-inner group transition-all ${s.btn}`}>
+                <div className={`p-3 sm:p-6 rounded-[2rem] border-2 shadow-inner group transition-all ${s.btn}`}>
                   <span className={`block text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-40 ${s.sub}`}>Government Credential</span>
                   <span className={`text-base sm:text-lg font-black tracking-tight ${s.header}`}>{selectedVisitor.idType}: {selectedVisitor.idNumber}</span>
                 </div>
-                <div className={`p-6 rounded-[2rem] border-2 shadow-inner group transition-all ${s.btn}`}>
+                <div className={`p-3 sm:p-6 rounded-[2rem] border-2 shadow-inner group transition-all ${s.btn}`}>
                   <span className={`block text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-40 ${s.sub}`}>Clinical Inmate Contact</span>
                   <span className={`text-base sm:text-lg font-black tracking-tight ${s.accent}`}>{getTargetPatient(selectedVisitor.targetPatientId)?.name}</span>
                 </div>

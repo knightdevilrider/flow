@@ -17,7 +17,7 @@ const StaffInventory: React.FC<StaffInventoryProps> = ({ inventory, theme, isAdm
   );
 
   return (
-    <div className="h-full flex flex-col p-6 overflow-y-auto">
+    <div className="h-full flex flex-col p-3 sm:p-6 overflow-y-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -46,8 +46,8 @@ const StaffInventory: React.FC<StaffInventoryProps> = ({ inventory, theme, isAdm
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-6 mb-8">
+        <div className="bg-slate-800/50 rounded-xl p-3 sm:p-6 border border-slate-700">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 mb-1">Total Items</p>
@@ -58,7 +58,7 @@ const StaffInventory: React.FC<StaffInventoryProps> = ({ inventory, theme, isAdm
             </div>
           </div>
         </div>
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <div className="bg-slate-800/50 rounded-xl p-3 sm:p-6 border border-slate-700">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 mb-1">Low Stock Alerts</p>
@@ -71,7 +71,7 @@ const StaffInventory: React.FC<StaffInventoryProps> = ({ inventory, theme, isAdm
             </div>
           </div>
         </div>
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+        <div className="bg-slate-800/50 rounded-xl p-3 sm:p-6 border border-slate-700">
           <div className="flex justify-between items-start">
             <div>
               <p className="text-slate-400 mb-1">Recent Transactions</p>
@@ -85,7 +85,7 @@ const StaffInventory: React.FC<StaffInventoryProps> = ({ inventory, theme, isAdm
       </div>
 
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden flex-1">
-        <div className="overflow-x-auto">
+        <div className="w-full overflow-x-auto border-inherit rounded-xl">
           <table className="w-full text-left">
             <thead className="bg-slate-800 border-b border-slate-700">
               <tr>
@@ -138,7 +138,7 @@ const StaffInventory: React.FC<StaffInventoryProps> = ({ inventory, theme, isAdm
               ))}
               {filteredInventory.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400">
+                  <td colSpan={5} className="p-4 sm:p-8 text-center text-slate-400">
                     No inventory items found.
                   </td>
                 </tr>

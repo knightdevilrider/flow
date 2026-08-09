@@ -52,8 +52,8 @@ const AdminAuthModal: React.FC<AdminAuthModalProps> = ({ theme, onSuccess, onClo
   const s = themeStyles[theme];
 
   return (
-    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl ${s.bg}`}>
-      <div className={`w-full max-w-sm rounded-[2.5rem] border p-8 shadow-2xl transition-all ${s.card} ${error ? 'animate-shake' : ''}`}>
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl ${s.bg}`}>
+      <div className={`w-full max-w-sm rounded-[2.5rem] border p-5 sm:p-8 shadow-2xl transition-all ${s.card} ${error ? 'animate-shake' : ''}`}>
         <div className="flex flex-col items-center text-center mb-8">
           <div className="w-16 h-16 rounded-2xl bg-[#0A84FF]/10 flex items-center justify-center text-3xl mb-4">🔐</div>
           <h2 className={`text-2xl font-black tracking-tight ${s.text}`}>Admin Access</h2>

@@ -63,9 +63,9 @@ export const GlobalIntercomWidget: React.FC<GlobalIntercomWidgetProps> = ({ them
   ];
 
   return (
-    <div className="fixed bottom-6 right-6 z-[1000] flex flex-col items-end">
+    <div className="fixed bottom-2 right-2 sm:bottom-6 sm:right-6 z-[1000] flex flex-col items-end">
       {isOpen ? (
-        <div className={`w-80 h-[30rem] flex flex-col rounded-3xl shadow-2xl mb-4 overflow-hidden border transition-all duration-300 ${isDark ? 'bg-[#1C1C1E] border-[#3C3C3E] text-white' : 'bg-white border-[#D2D2D7] text-black'}`}>
+        <div className={`w-[95vw] sm:w-80 h-[30rem] flex flex-col rounded-3xl shadow-2xl mb-4 overflow-hidden border transition-all duration-300 ${isDark ? 'bg-[#1C1C1E] border-[#3C3C3E] text-white' : 'bg-white border-[#D2D2D7] text-black'}`}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-inherit">
             <div className="flex items-center gap-2">

@@ -103,9 +103,9 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-3 gap-3 sm:p-6 sm:gap-10">
       <div className="lg:col-span-2 space-y-6 sm:space-y-10">
-        <section className={`p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border shadow-2xl relative overflow-hidden ${s.card}`}>
+        <section className={`p-3 sm:p-6 sm:p-12 rounded-[2.5rem] sm:rounded-[4rem] border shadow-2xl relative overflow-hidden ${s.card}`}>
           <div className={`absolute top-0 right-0 px-8 py-3 text-[10px] font-black uppercase tracking-widest rounded-bl-[2rem] shadow-inner ${theme === 'light' ? 'bg-[#F5F5F7] text-[#86868b]' : 'bg-[#2D2D2D] text-[#86868b]'}`}>Check In Control</div>
           
           {currentPatient ? (
@@ -173,7 +173,7 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
 
                   <div className="space-y-4">
                     <label className={`block text-[10px] font-black uppercase tracking-widest opacity-60 ${s.sub}`}>Assign Clinical Section</label>
-                    <div className="grid grid-cols-3 gap-3 sm:gap-6">
+                    <div className="grid grid-cols-3 gap-3 sm:gap-3 sm:p-6">
                       {(['A', 'B', 'C'] as Section[]).map(se => (
                         <button
                           key={se}
@@ -185,7 +185,7 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
                       ))}
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row gap-4 sm:gap-3 sm:p-6">
                     <button 
                       onClick={handleCheckinComplete}
                       disabled={!selectedSection}
@@ -218,9 +218,9 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
 
         <section className="space-y-8">
           <h3 className={`text-xl sm:text-2xl font-black uppercase tracking-tight ${s.header}`}>Registry Pipeline ({availableToCall.length})</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-3 sm:p-6">
             {availableToCall.slice(0, 4).map((p, idx) => (
-              <div key={p.id} className={`p-6 sm:p-8 rounded-[2rem] border-2 flex items-center justify-between opacity-50 shadow-sm transition-all ${s.card}`}>
+              <div key={p.id} className={`p-3 sm:p-6 sm:p-4 sm:p-8 rounded-[2rem] border-2 flex items-center justify-between opacity-50 shadow-sm transition-all ${s.card}`}>
                 <div className="flex items-center gap-5">
                   <span className={`text-xs sm:text-xl font-black opacity-30 ${s.sub}`}>{String(idx + 1).padStart(2, '0')}</span>
                   <div>
@@ -258,11 +258,11 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
       </div>
 
       <div className="space-y-6 sm:space-y-10">
-        <section className={`p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border shadow-2xl ${s.card}`}>
+        <section className={`p-4 sm:p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border shadow-2xl ${s.card}`}>
           <h3 className={`text-[10px] sm:text-[12px] font-black uppercase tracking-widest mb-8 text-red-500`}>ABSENT RECOVERY</h3>
           <div className="space-y-4">
             {absentList.length > 0 ? absentList.map(p => (
-              <div key={p.id} className={`p-6 rounded-[2rem] border-2 flex justify-between items-center ${s.btn} shadow-sm hover:shadow-md transition-all`}>
+              <div key={p.id} className={`p-3 sm:p-6 rounded-[2rem] border-2 flex justify-between items-center ${s.btn} shadow-sm hover:shadow-md transition-all`}>
                 <div className="flex flex-col">
                    <span className={`text-base font-black tracking-tight ${s.header}`}>{p.name}</span>
                    <span className={`text-[10px] font-black uppercase opacity-40 ${s.sub}`}>{p.id}</span>
@@ -279,7 +279,7 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
             )}
           </div>
         </section>
-        {message && <div className={`p-8 rounded-[2rem] text-center text-xs sm:text-sm font-black animate-pulse border-2 shadow-xl ${s.success}`}>{message}</div>}
+        {message && <div className={`p-4 sm:p-8 rounded-[2rem] text-center text-xs sm:text-sm font-black animate-pulse border-2 shadow-xl ${s.success}`}>{message}</div>}
       </div>
     </div>
   );

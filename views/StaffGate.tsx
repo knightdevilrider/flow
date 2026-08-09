@@ -376,7 +376,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
       <div className="flex flex-col items-center py-4 sm:py-8 w-full">
         {/* Title Group */}
         <div className="text-center mb-6 sm:mb-10 w-full max-w-7xl mx-auto">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-4 sm:p-8">
             <h1 className={`text-2xl sm:text-4xl font-black tracking-tight ${s.header}`}>Intake System</h1>
             
             <div className="flex flex-row sm:flex-col items-center sm:items-start justify-center px-4 py-1 sm:py-0 sm:pl-8 border-t sm:border-t-0 sm:border-l border-emerald-500/20 w-full sm:w-auto">
@@ -400,7 +400,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
               <button
                 key={cat.id}
                 onClick={() => handleCategorySelect(cat.id)}
-                className={`group relative flex flex-col items-center text-center p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border transition-all duration-300 min-h-[120px] sm:min-h-[160px] ${s.card} hover:scale-[1.02] active:scale-95 shadow-md hover:shadow-xl`}
+                className={`group relative flex flex-col items-center text-center p-4 sm:p-3 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border transition-all duration-300 min-h-[120px] sm:min-h-[160px] ${s.card} hover:scale-[1.02] active:scale-95 shadow-md hover:shadow-xl`}
               >
                 <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-3xl mb-3 sm:mb-4 shadow-inner border transition-all ${s.btn}`}>
                   {cat.icon}
@@ -470,7 +470,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
         </div>
       </div>
 
-      <div className={`p-6 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all ${s.card}`}>
+      <div className={`p-3 sm:p-6 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border shadow-xl relative overflow-hidden transition-all ${s.card}`}>
         {success && (
           <div className="absolute inset-0 bg-white/95 dark:bg-black/95 z-50 flex flex-col items-center justify-center animate-in fade-in">
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500 mb-6 border-2 border-emerald-500/40 animate-bounce shadow-xl">
@@ -506,7 +506,7 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
             </section>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-8 sm:gap-12">
             {/* Left Column: Form Fields */}
             <div className="space-y-8">
               {/* Section: Identity Proof */}

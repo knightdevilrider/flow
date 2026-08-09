@@ -204,7 +204,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
           <h2 className={`text-4xl sm:text-6xl font-black mb-4 uppercase tracking-tighter leading-none ${s.header}`}>Doctor Portal</h2>
           <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.3em] opacity-40 ${s.sub}`}>Select authorized consultant profile</p>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-3 sm:p-6">
           {activeRosterDocs.map(d => {
             const rosterItem = roster.find(r => (r as any).doctorId === d.id || (r as any).staffId === d.id);
             return (
@@ -240,7 +240,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
   }
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 grid grid-cols-1 lg:grid-cols-4 gap-3 sm:p-6">
       {showDailyDigest && doctor && (
         <DoctorDailySummary
           doctor={doctor}
@@ -296,7 +296,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
       </div>
 
       <div className="lg:col-span-3 space-y-6">
-        <section className={`p-6 sm:p-8 rounded-[2rem] border shadow-xl relative overflow-hidden ${s.card}`}>
+        <section className={`p-3 sm:p-6 sm:p-4 sm:p-8 rounded-[2rem] border shadow-xl relative overflow-hidden ${s.card}`}>
           <div className={`absolute top-0 right-0 px-6 py-2 text-white text-[8px] font-black uppercase tracking-widest rounded-bl-2xl shadow-lg ${theme === 'light' ? 'bg-[#0071e3]' : 'bg-[#0A84FF]'}`}>
             Live Consultation
           </div>
@@ -304,7 +304,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
           {currentPatient ? (
             <div className="relative">
               {currentPatient.specialistNotesPending && (
-                <div className="absolute inset-[-1.5rem] sm:inset-[-2rem] z-50 backdrop-blur-xl border-4 border-amber-500/30 rounded-[2.5rem] flex flex-col items-center justify-center p-6 text-center bg-white/40 dark:bg-black/40 animate-in fade-in zoom-in-95">
+                <div className="absolute inset-[-1.5rem] sm:inset-[-2rem] z-50 backdrop-blur-xl border-4 border-amber-500/30 rounded-[2.5rem] flex flex-col items-center justify-center p-3 sm:p-6 text-center bg-white/40 dark:bg-black/40 animate-in fade-in zoom-in-95">
                   <div className="text-5xl mb-4 animate-bounce">🤝</div>
                   <h3 className="text-2xl font-black text-amber-500 uppercase tracking-tighter mb-4 leading-none">CLINICAL SYNC</h3>
                   <p className={`text-[10px] max-w-xs mb-8 leading-relaxed font-black uppercase tracking-widest opacity-80 ${s.header}`}>
@@ -322,7 +322,7 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
                 </div>
               )}
 
-              <div className="flex flex-col sm:flex-row gap-8 items-start animate-in fade-in">
+              <div className="flex flex-col sm:flex-row gap-4 sm:p-8 items-start animate-in fade-in">
                 <div 
                   onClick={() => setViewingPatient(currentPatient)}
                   className={`w-28 h-28 sm:w-40 sm:h-40 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden border-4 shadow-lg shrink-0 transition-transform cursor-pointer hover:scale-105 active:scale-95 ${theme === 'light' ? 'border-white' : 'border-[#333]'}`}

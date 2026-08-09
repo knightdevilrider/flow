@@ -64,10 +64,10 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="min-h-screen flex flex-col">
       {currentView !== 'public' && (
-        <header className={`apple-glass z-10 px-4 py-2 border-b h-[70px] shrink-0 flex items-center transition-all ${s.header}`}>
+        <header className={`apple-glass z-10 px-2 py-1.5 sm:px-4 sm:py-2 border-b h-[70px] shrink-0 flex items-center transition-all ${s.header}`}>
           <div className="w-full flex justify-between items-center">
             {/* Left */}
-            <div className="flex items-center gap-2 w-[280px]">
+            <div className="flex items-center gap-2 flex-1 sm:w-[280px] sm:flex-none">
               {onSettings && (
                 <button 
                   onClick={onSettings}
@@ -83,7 +83,7 @@ const Layout: React.FC<LayoutProps> = ({
               {onBack && (
                 <button 
                   onClick={onBack}
-                  className={`px-4 py-2 text-[11px] font-bold rounded-full transition-all flex items-center gap-2 ${s.btn}`}
+                  className={`px-2 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[11px] font-bold rounded-full transition-all flex items-center gap-2 ${s.btn}`}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                   Dashboard
@@ -92,7 +92,7 @@ const Layout: React.FC<LayoutProps> = ({
               {onToggleAdmin && (
                 <button 
                   onClick={onToggleAdmin}
-                  className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${isAdminMode ? s.adminActive : s.adminInactive}`}
+                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${isAdminMode ? s.adminActive : s.adminInactive}`}
                 >
                   {isAdminMode ? '🔓 Admin Mode' : '🔒 Admin Mode'}
                 </button>
@@ -115,7 +115,7 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             {/* Right */}
-            <div className="flex items-center justify-end gap-3 w-[280px]">
+            <div className="flex items-center justify-end gap-1 sm:gap-3 flex-1 sm:w-[280px] sm:flex-none">
               {statusNode}
               {user && (
                 <div className="flex items-center gap-3 pr-2 border-r border-white/10 mr-1">

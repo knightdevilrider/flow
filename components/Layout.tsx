@@ -60,10 +60,10 @@ const Layout: React.FC<LayoutProps> = ({
               {onBack && (
                 <button 
                   onClick={onBack}
-                  className={`px-3 py-2 sm:px-4 sm:py-2 text-[11px] font-bold rounded-full transition-all flex items-center gap-2 shadow-lg ${s.btn}`}
+                  className={`p-2.5 rounded-full transition-all flex items-center justify-center shadow-lg ${s.btn}`}
+                  title="Go Back"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                  <span className="hidden sm:inline tracking-widest uppercase">Dashboard</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 </button>
               )}
 

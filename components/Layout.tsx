@@ -79,21 +79,6 @@ const Layout: React.FC<LayoutProps> = ({
             {/* Right */}
             <div className="flex items-center justify-end gap-2 flex-1 sm:w-[280px] sm:flex-none">
               {statusNode}
-              <button
-                onClick={onThemeToggle}
-                className={`p-2.5 rounded-full transition-all shadow-lg ${s.btn}`}
-                title="Change Appearance"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path d="M12 3a9 9 0 000 18V3z"/>
-                </svg>
-              </button>
-              <button
-                onClick={handleRefresh}
-                className={`p-2.5 rounded-full transition-all shadow-lg ${s.btn} ${isRefreshing ? 'animate-spin' : ''}`}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
-              </button>
             </div>
           </div>
         </header>

@@ -46,6 +46,18 @@ const StaffDoctor: React.FC<StaffDoctorProps> = ({ patients, theme, doctors: all
  const [isQueueHeld, setIsQueueHeld] = useState(false);
  const isProcessingAutoCall = useRef(false);
 
+  useEffect(() => {
+    const handleAppBack = (e) => {
+      if (showPrintPreview) { e.preventDefault(); setShowPrintPreview(false); return; }
+      if (showHistoryTimeline) { e.preventDefault(); setShowHistoryTimeline(false); return; }
+      if (showDailyDigest) { e.preventDefault(); setShowDailyDigest(false); return; }
+      if (viewingPatient) { e.preventDefault(); setViewingPatient(null); return; }
+      if (activeDoctorId) { e.preventDefault(); setActiveDoctorId(''); return; }
+    };
+    window.addEventListener('app-back-button', handleAppBack);
+    return () => window.removeEventListener('app-back-button', handleAppBack);
+  }, [showPrintPreview, showHistoryTimeline, showDailyDigest, viewingPatient, activeDoctorId]);
+
  const s = getPremiumStyles(theme);
 
  const activeRosterDocs = roster.length > 0 

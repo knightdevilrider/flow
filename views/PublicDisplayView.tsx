@@ -154,6 +154,16 @@ const PublicDisplayView: React.FC<{
   const lastAnnouncedRef = useRef<Record<string, number>>({});
 
   useEffect(() => {
+    const handleAppBack = (e) => {
+      if (targetDoctorId) { e.preventDefault(); setTargetDoctorId(''); return; }
+      if (targetWard) { e.preventDefault(); setTargetWard(''); return; }
+      if (targetTreatment) { e.preventDefault(); setTargetTreatment(''); return; }
+    };
+    window.addEventListener('app-back-button', handleAppBack);
+    return () => window.removeEventListener('app-back-button', handleAppBack);
+  }, [targetDoctorId, targetWard, targetTreatment]);
+
+  useEffect(() => {
     const timer = setInterval(() => {
       setCarouselIndex(prev => prev + 1);
     }, 10000);

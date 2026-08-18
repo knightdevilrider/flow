@@ -17,6 +17,17 @@ interface StaffGateProps{
 
 const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, isAdmin, onEditPatient, onDeletePatient}) =>{
  const [step, setStep] = useState<'selection' | 'form'>('selection');
+
+  useEffect(() => {
+    const handleAppBack = (e) => {
+      if (step === 'form') {
+        e.preventDefault();
+        setStep('selection');
+      }
+    };
+    window.addEventListener('app-back-button', handleAppBack);
+    return () => window.removeEventListener('app-back-button', handleAppBack);
+  }, [step]);
  const [isSubmitting, setIsSubmitting] = useState(false);
  const [success, setSuccess] = useState(false);
  const [error, setError] = useState('');

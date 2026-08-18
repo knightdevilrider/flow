@@ -1,5 +1,6 @@
 
 import React,{ useState} from 'react';
+import { RegistryTable } from '../components/RegistryTable';
 import{ Patient, PatientStatus, Theme} from '../types';
 import{ mockFirestore} from '../services/mockFirestore';
 import{ TREATMENT_TYPES} from '../constants';

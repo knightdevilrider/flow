@@ -1,5 +1,6 @@
 
 import React,{ useState} from 'react';
+import { RegistryTable } from '../components/RegistryTable';
 import{ Patient, PatientStatus, PatientCategory, Theme} from '../types';
 import{ mockFirestore} from '../services/mockFirestore';
 import{ getPremiumStyles} from '../theme/premiumDesign';
@@ -31,8 +32,10 @@ const StaffAttendantMgmt: React.FC<StaffAttendantMgmtProps> = ({ patients, theme
  setSelectedAttendant(null);
 };
 
- return (
- <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  return (
+    <div className="flex flex-col w-full">
+      <div className="shrink-0 w-full">
+        <div className="space-y-8 sm:space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-8 sm:gap-12">
  <div className="lg:col-span-2 space-y-6 pr-4">
  <div className="flex items-center justify-between mb-4 px-2">
@@ -141,9 +144,19 @@ const StaffAttendantMgmt: React.FC<StaffAttendantMgmtProps> = ({ patients, theme
  )}
  </div>
  </div>
- </div>
- );
-};
 
+        </div>
+      </div>
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8 shrink-0">
+        <RegistryTable 
+          patients={typeof patients !== "undefined" ? patients : (typeof orders !== "undefined" ? orders : []) as any} 
+          theme={theme} 
+          onRowClick={typeof setTimelinePatient !== "undefined" ? (p) => isAdmin && setTimelinePatient(p) : undefined} 
+          hideCategoryFilter={true} 
+        />
+      </div>
+    </div>
+  );
+};
 export default StaffAttendantMgmt;
 

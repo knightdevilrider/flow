@@ -201,7 +201,8 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
   };
 
   return (
-    <div className={`h-[calc(100vh-6rem)] w-full flex gap-4 p-4 overflow-hidden ${s.bg}`}>
+    <div className="flex flex-col w-full">
+      <div className={`shrink-0 min-h-[600px] h-[calc(100vh-6rem)] w-full flex gap-4 p-4 overflow-hidden ${s.bg}`}>
       
       {/* ================= COLUMN 1: INBOX (25%) ================= */}
       <div className={`w-1/4 min-w-[280px] max-w-sm rounded-3xl border shadow-xl flex flex-col overflow-hidden ${s.card}`}>
@@ -539,13 +540,7 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
           </>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-            <RegistryTable 
-              patients={patients}
-              theme={theme}
-              onEdit={onEditPatient}
-              onRowClick={(p) => isAdmin && setTimelinePatient(p)}
-              onDelete={handleRequestDelete}
-            />
+            <div className="flex-1 flex items-center justify-center text-white/50 uppercase tracking-widest font-black text-sm">Select a patient to begin</div>
           </div>
         )}
       </div>
@@ -554,9 +549,11 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
       <div className={`w-1/4 min-w-[280px] max-w-sm rounded-3xl overflow-hidden`}>
         <ReceptionSidebar patients={patients} doctors={doctors} theme={theme} />
       </div>
-
+      </div>
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8 shrink-0">
+        <RegistryTable patients={patients} theme={theme} onEdit={onEditPatient} onRowClick={(p) => isAdmin && setTimelinePatient && setTimelinePatient(p)} hideCategoryFilter={true} />
+      </div>
     </div>
   );
 };
-
 export default StaffReception;

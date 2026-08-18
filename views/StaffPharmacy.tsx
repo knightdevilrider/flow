@@ -1,4 +1,5 @@
 import React,{ useState} from 'react';
+import { RegistryTable } from '../components/RegistryTable';
 import{ Patient, PatientStatus, Theme, InventoryItem, InventoryBatch} from '../types';
 import{ mockFirestore} from '../services/mockFirestore';
 import{ getPremiumStyles} from '../theme/premiumDesign';
@@ -11,6 +12,7 @@ interface StaffPharmacyProps{
 }
 
 const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin, inventory = []}) =>{
+ const themeStyles = getPremiumStyles(theme);
  const [activeTab, setActiveTab] = useState<'billing' | 'inventory'>('billing');
  const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
  const [expandedDrug, setExpandedDrug] = useState<string | null>(null);
@@ -65,8 +67,10 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
  setNewBatch({ batchId: '', quantity: 0, expiryDate: '', location:{ rack: '', shelf: '', box: ''}});
 };
 
- return (
- <div className="space-y-6">
+  return (
+    <div className="flex flex-col w-full">
+      <div className="shrink-0 w-full">
+        <div className="space-y-6">
 {/* Tabs */}
  <div className="flex gap-4 border-b border-black/10 dark:border-white/10 pb-4">
  <button 
@@ -248,8 +252,18 @@ const StaffPharmacy: React.FC<StaffPharmacyProps> = ({ patients, theme, isAdmin,
  </form>
  </div>
  )}
- </div>
- );
-};
 
+        </div>
+      </div>
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8 shrink-0">
+        <RegistryTable 
+          patients={typeof patients !== "undefined" ? patients : (typeof orders !== "undefined" ? orders : []) as any} 
+          theme={theme} 
+          onRowClick={typeof setTimelinePatient !== "undefined" ? (p) => isAdmin && setTimelinePatient(p) : undefined} 
+          hideCategoryFilter={true} 
+        />
+      </div>
+    </div>
+  );
+};
 export default StaffPharmacy;

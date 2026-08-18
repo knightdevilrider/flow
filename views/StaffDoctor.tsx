@@ -1,4 +1,5 @@
 import React,{ useState, useEffect, useRef} from 'react';
+import { RegistryTable } from '../components/RegistryTable';
 import{ Patient, PatientStatus, Doctor, Theme, PatientCategory, DoctorRoster, InventoryItem, RadiologyOrder} from '../types';
 import{ mockFirestore} from '../services/mockFirestore';
 import{ TREATMENT_TYPES} from '../constants';

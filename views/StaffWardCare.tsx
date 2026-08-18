@@ -1,4 +1,5 @@
 import React,{ useState, useEffect} from 'react';
+import { RegistryTable } from '../components/RegistryTable';
 import{ Patient, Bed, PatientStatus, PatientCategory, Theme} from '../types';
 import{ mockFirestore} from '../services/mockFirestore';
 import PatientContactModal from '../components/PatientContactModal';
@@ -49,8 +50,10 @@ const StaffWardCare: React.FC<StaffWardCareProps> = ({ patients, theme, isAdmin,
 
  const ipdPatients = patients.filter(p => [PatientStatus.WARD_ADMITTED, PatientStatus.ICU_ADMITTED].includes(p.status));
 
- return (
- <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 space-y-6">
+  return (
+    <div className="flex flex-col w-full">
+      <div className="shrink-0 w-full">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 space-y-6">
  <PatientContactModal 
  patient={viewingPatient} 
  onClose={() => setViewingPatient(null)} 
@@ -256,9 +259,19 @@ const StaffWardCare: React.FC<StaffWardCareProps> = ({ patients, theme, isAdmin,
 }
  </div>
  </div>
- </div>
- );
-};
 
+        </div>
+      </div>
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8 shrink-0">
+        <RegistryTable 
+          patients={typeof patients !== "undefined" ? patients : (typeof orders !== "undefined" ? orders : []) as any} 
+          theme={theme} 
+          onRowClick={typeof setTimelinePatient !== "undefined" ? (p) => isAdmin && setTimelinePatient(p) : undefined} 
+          hideCategoryFilter={true} 
+        />
+      </div>
+    </div>
+  );
+};
 export default StaffWardCare;
 

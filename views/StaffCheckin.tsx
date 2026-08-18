@@ -1,5 +1,6 @@
 
 import React,{ useState, useEffect, useRef} from 'react';
+import { RegistryTable } from '../components/RegistryTable';
 import{ Patient, PatientStatus, Section, Theme, Doctor} from '../types';
 import{ mockFirestore} from '../services/mockFirestore';
 import{ getPremiumStyles} from '../theme/premiumDesign';
@@ -184,45 +185,6 @@ const StaffCheckin: React.FC<StaffCheckinProps> = ({ patients, theme, doctors, i
  )}
  </section>
 
- <section className="space-y-8">
- <h3 className={`text-xl sm:text-2xl font-black uppercase tracking-tight ${s.header}`}>Registry Pipeline ({availableToCall.length})</h3>
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-3 sm:p-6">
-{availableToCall.slice(0, 4).map((p, idx) => (
- <div key={p.id} className={`p-3 sm:p-6 sm:p-4 sm:p-8 rounded-[2rem] border-2 flex items-center justify-between opacity-50 shadow-sm transition-all ${s.card}`}>
- <div className="flex items-center gap-5">
- <span className={`text-xs sm:text-xl font-black opacity-30 ${s.sub}`}>{String(idx + 1).padStart(2, '0')}</span>
- <div>
- <div className={`text-base sm:text-xl font-black ${s.header}`}>{p.name}</div>
- <div className={`text-[9px] sm:text-xs font-black uppercase tracking-widest ${s.sub}`}>{p.id}</div>
- </div>
- </div>
- <div className="w-8 h-8 rounded-full border-2 border-white/5 bg-black/5 flex items-center justify-center text-[10px]">🔒</div>
- </div>
- ))}
- </div>
- </section>
- 
-{/* Processed Registry */}
- <section className="space-y-4 pt-6 border-t border-white/5">
- <div className="flex items-center justify-between">
- <h3 className={`text-sm font-black uppercase tracking-widest ${s.sub}`}>Processed Registry (Check In Done)</h3>
- </div>
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-60 hover:opacity-100 transition-opacity">
-{patients.filter(p => p.status === PatientStatus.CHECKIN_WAITING && p.checkinSection)
- .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
- .slice(0, 8)
- .map((p) => (
- <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
- <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
- <div className="min-w-0">
- <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
- <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>Section{p.checkinSection} Assigned</div>
- </div>
- </div>
- ))
-}
- </div>
- </section>
  </div>
 
  <div className="space-y-6 sm:space-y-10">

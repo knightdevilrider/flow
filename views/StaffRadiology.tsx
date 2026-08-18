@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { RegistryTable } from '../components/RegistryTable';
 import { RadiologyOrder, Theme } from '../types';
 import { Activity, Search, Upload, CheckCircle, Clock } from 'lucide-react';
 
@@ -17,7 +18,9 @@ const StaffRadiology: React.FC<StaffRadiologyProps> = ({ orders, theme, isAdmin 
   );
 
   return (
-    <div className="h-full flex flex-col p-3 sm:p-6 overflow-y-auto">
+    <div className="flex flex-col w-full">
+      <div className="shrink-0 w-full">
+        <div className="h-full flex flex-col p-3 sm:p-6 overflow-y-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -106,8 +109,18 @@ const StaffRadiology: React.FC<StaffRadiologyProps> = ({ orders, theme, isAdmin 
           </table>
         </div>
       </div>
+
+        </div>
+      </div>
+      <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8 shrink-0">
+        <RegistryTable 
+          patients={typeof patients !== "undefined" ? patients : (typeof orders !== "undefined" ? orders : []) as any} 
+          theme={theme} 
+          onRowClick={typeof setTimelinePatient !== "undefined" ? (p) => isAdmin && setTimelinePatient(p) : undefined} 
+          hideCategoryFilter={true} 
+        />
+      </div>
     </div>
   );
 };
-
 export default StaffRadiology;

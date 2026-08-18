@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-
 import { Theme } from '../types';
+import { getPremiumStyles } from '../theme/premiumDesign';
 
 interface LayoutProps {
   title: string;
@@ -32,46 +32,23 @@ const Layout: React.FC<LayoutProps> = ({
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
-  const themeStyles = {
-    light: {
-      header: 'bg-white/80 border-[#D2D2D7]',
-      btn: 'bg-[#E8E8ED] hover:bg-[#D2D2D7] border-transparent text-[#1D1D1F]',
-      text: 'text-[#1D1D1F]',
-      sub: 'text-[#86868b]',
-      adminActive: 'bg-red-500 text-white hover:bg-red-600',
-      adminInactive: 'bg-slate-200 text-slate-500 hover:bg-slate-300'
-    },
-    dark: {
-      header: 'bg-black/80 border-[#1D1D1F]',
-      btn: 'bg-[#1D1D1F] hover:bg-[#2D2D2D] border-transparent text-white',
-      text: 'text-white',
-      sub: 'text-[#86868b]',
-      adminActive: 'bg-red-600 text-white hover:bg-red-700',
-      adminInactive: 'bg-white/5 text-white/40 hover:bg-white/10'
-    },
-    titanium: {
-      header: 'bg-[#3D3D3D]/80 border-[#4D4D4D]',
-      btn: 'bg-[#4D4D4D] hover:bg-[#5D5D5D] border-transparent text-[#E8E8ED]',
-      text: 'text-[#E8E8ED]',
-      sub: 'text-[#A1A1A6]',
-      adminActive: 'bg-red-600 text-white hover:bg-red-700',
-      adminInactive: 'bg-white/5 text-white/40 hover:bg-white/10'
-    }
-  };
-
-  const s = themeStyles[theme];
+  const s = getPremiumStyles(theme);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col relative overflow-hidden transition-colors ${s.bg}`}>
+      {/* Global Ambient Background Orbs */}
+      <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] pointer-events-none ${s.orb1}`}></div>
+      <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] pointer-events-none ${s.orb2}`}></div>
+
       {currentView !== 'public' && (
-        <header className={`apple-glass z-10 px-2 py-1.5 sm:px-4 sm:py-2 border-b h-[70px] shrink-0 flex items-center transition-all ${s.header}`}>
-          <div className="w-full flex justify-between items-center">
+        <header className={`z-10 px-2 py-1.5 sm:px-4 sm:py-2 h-[70px] shrink-0 flex items-center transition-all ${s.mobileBar} max-sm:h-[60px] relative`}>
+          <div className="w-full flex justify-between items-center px-2">
             {/* Left */}
             <div className="flex items-center gap-2 flex-1 sm:w-[280px] sm:flex-none">
               {onSettings && (
                 <button 
                   onClick={onSettings}
-                  className={`p-2.5 rounded-full transition-all flex items-center justify-center ${s.btn}`}
+                  className={`p-2.5 rounded-full transition-all flex items-center justify-center shadow-lg ${s.btn}`}
                   title="System Settings"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -83,54 +60,35 @@ const Layout: React.FC<LayoutProps> = ({
               {onBack && (
                 <button 
                   onClick={onBack}
-                  className={`px-2 py-1.5 sm:px-4 sm:py-2 text-[9px] sm:text-[11px] font-bold rounded-full transition-all flex items-center gap-2 ${s.btn}`}
+                  className={`px-3 py-2 sm:px-4 sm:py-2 text-[11px] font-bold rounded-full transition-all flex items-center gap-2 shadow-lg ${s.btn}`}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                  Dashboard
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                  <span className="hidden sm:inline tracking-widest uppercase">Dashboard</span>
                 </button>
               )}
               {onToggleAdmin && (
                 <button 
                   onClick={onToggleAdmin}
-                  className={`px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${isAdminMode ? s.adminActive : s.adminInactive}`}
+                  className={`px-3 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg ${isAdminMode ? 'bg-red-500 text-white' : s.btn}`}
                 >
-                  {isAdminMode ? '🔓 Admin Mode' : '🔒 Admin Mode'}
+                  {isAdminMode ? '🔓 Admin' : '🔒 Admin'}
                 </button>
               )}
             </div>
 
             {/* Center */}
             <div className="flex flex-col items-center text-center">
-              <div className={`hidden sm:block text-[9px] font-black uppercase tracking-[0.3em] mb-0.5 ${s.text}`}>
-                <span className="opacity-40">Hospital</span><span className={s.accent}>Flow</span>
-              </div>
-              <h1 className={`text-lg font-bold tracking-tight transition-all ${s.text}`}>
+              <h1 className={`text-base sm:text-lg font-black tracking-tight uppercase transition-all ${s.header}`}>
                 {title}
               </h1>
-              {subtitle && (
-                <p className={`hidden sm:block text-[9px] font-bold uppercase tracking-widest mt-0.5 ${s.sub}`}>
-                  {subtitle}
-                </p>
-              )}
             </div>
 
             {/* Right */}
-            <div className="flex items-center justify-end gap-1 sm:gap-3 flex-1 sm:w-[280px] sm:flex-none">
+            <div className="flex items-center justify-end gap-2 flex-1 sm:w-[280px] sm:flex-none">
               {statusNode}
-              {user && (
-                <div className="flex items-center gap-3 pr-2 border-r border-white/10 mr-1">
-                  <div className="text-right hidden sm:block">
-                    <p className={`text-[10px] font-black uppercase tracking-tighter ${s.text}`}>{user.displayName}</p>
-                    <button onClick={onLogout} className="text-[8px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors">Sign Out</button>
-                  </div>
-                  {user.photoURL && (
-                    <img src={user.photoURL} alt="Avatar" className="w-8 h-8 rounded-full border-2 border-white/10" referrerPolicy="no-referrer" />
-                  )}
-                </div>
-              )}
               <button
                 onClick={onThemeToggle}
-                className={`p-2.5 rounded-full transition-all ${s.btn}`}
+                className={`p-2.5 rounded-full transition-all shadow-lg ${s.btn}`}
                 title="Change Appearance"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -139,7 +97,7 @@ const Layout: React.FC<LayoutProps> = ({
               </button>
               <button
                 onClick={handleRefresh}
-                className={`p-2.5 rounded-full transition-all ${s.btn} ${isRefreshing ? 'animate-spin' : ''}`}
+                className={`p-2.5 rounded-full transition-all shadow-lg ${s.btn} ${isRefreshing ? 'animate-spin' : ''}`}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
               </button>
@@ -148,14 +106,14 @@ const Layout: React.FC<LayoutProps> = ({
         </header>
       )}
 
-      <main className="flex-1">
-        <div>
+      <main className={`flex-1 flex flex-col transition-all duration-300 relative z-10 w-full max-w-[1600px] mx-auto`}>
+        <div className={`flex-1 w-full max-w-full p-2 sm:p-4 md:p-8 flex flex-col`}>
           {children}
         </div>
       </main>
 
       {currentView !== 'public' && (
-        <footer className={`h-[40px] shrink-0 flex items-center justify-center text-[9px] font-bold uppercase tracking-[0.2em] border-t transition-all ${theme === 'light' ? 'bg-[#F5F5F7] border-[#D2D2D7] text-[#86868b]' : 'bg-black border-[#1D1D1F] text-[#424245]'}`}>
+        <footer className={`hidden sm:flex h-[40px] shrink-0 items-center justify-center text-[9px] font-bold uppercase tracking-[0.2em] transition-all relative z-10 ${s.cardHeader} ${s.sub}`}>
           &copy; 2024 EMR Legal Governance Engine • Designed for Clinical Precision
         </footer>
       )}

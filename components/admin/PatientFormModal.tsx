@@ -19,14 +19,14 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
   const [formData, setFormData] = useState<Partial<Patient>>({
     name: '',
     age: '',
-    gender: 'Male',
-    contactNumber: '',
+    gender: 'Unspecified',
+    contactNumber: '+91 ',
     address: '',
     emergencyContact: '',
     bloodGroup: '',
-    allergies: '',
-    chronicConditions: '',
-    currentMedications: '',
+    allergies: 'None',
+    chronicConditions: 'None',
+    currentMedications: 'None',
     category: PatientCategory.OPD,
     status: PatientStatus.GATE_REGISTERED,
     assignedDoctorId: '',
@@ -40,14 +40,14 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
       setFormData({
         name: '',
         age: '',
-        gender: 'Male',
-        contactNumber: '',
+        gender: 'Unspecified',
+        contactNumber: '+91 ',
         address: '',
         emergencyContact: '',
         bloodGroup: '',
-        allergies: '',
-        chronicConditions: '',
-        currentMedications: '',
+        allergies: 'None',
+        chronicConditions: 'None',
+        currentMedications: 'None',
         category: PatientCategory.OPD,
         status: PatientStatus.GATE_REGISTERED,
         assignedDoctorId: '',
@@ -173,6 +173,7 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
                     value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}
                     className={`w-full px-6 py-4 rounded-2xl border outline-none font-bold ${s.input}`}
                   >
+                    <option value="Unspecified">Unspecified</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>

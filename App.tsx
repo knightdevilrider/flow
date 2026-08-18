@@ -407,9 +407,9 @@ const App: React.FC = () => {
 
   // Theme-based background
   const themeClasses = {
-    light: 'bg-[#F5F5F7] text-[#1D1D1F]',
-    dark: 'bg-[#000000] text-[#F5F5F7]',
-    titanium: 'bg-[#3D3D3D] text-[#E8E8ED]'
+    light: 'bg-[#F5F5F7] max-sm:bg-[#E9E0F8] text-[#1D1D1F]',
+    dark: 'bg-[#000000] max-sm:bg-[#1A1525] text-[#F5F5F7]',
+    titanium: 'bg-[#3D3D3D] max-sm:bg-[#2A2535] text-[#E8E8ED]'
   };
   // Removed Auth barrier entirely because the network is blocking Firebase Auth
 
@@ -504,7 +504,7 @@ const App: React.FC = () => {
       case UserRole.VISITOR_MGMT: return <StaffVisitorMgmt patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.ATTENDANT_MGMT: return <StaffAttendantMgmt patients={activePatients} theme={theme} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       case UserRole.ADMIN: return <AdminConsole theme={theme} doctors={doctors} staff={staff} rotations={roster as any} isAdmin={isAdminMode} customRoles={customRoles} setCustomRoles={setCustomRoles} customShifts={customShifts} setCustomShifts={setCustomShifts} />;
-      case UserRole.PUBLIC: return <PublicDisplayView patients={patients} viewType={selectedSubView || 'all'} theme={theme} thresholds={thresholds} roster={roster} doctors={doctors} onBack={handleBack} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
+      case UserRole.PUBLIC: return <PublicDisplayView patients={patients} viewType={selectedSubView || 'all'} theme={theme} thresholds={thresholds} roster={roster} doctors={doctors} wards={wards} onBack={handleBack} isAdmin={isAdminMode} onEditPatient={handleEditPatient} onDeletePatient={handleDeletePatient} />;
       default: return <MainDashboard onRoleSelect={handleRoleSelect} patients={activePatients} theme={theme} onThemeToggle={toggleTheme} onSettings={handleSettingsClick} isAdmin={isAdminMode} />;
     }
   };

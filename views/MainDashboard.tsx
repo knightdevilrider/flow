@@ -1,8 +1,15 @@
-
 import React, { useState } from 'react';
 import { UserRole, Patient, PatientStatus, Theme } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
 import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Shield, UserPlus, FileCheck, Stethoscope, Syringe, 
+  Pill, FlaskConical, Radio, Package, Bed, 
+  Receipt, Users, Lock, ChevronRight, Activity, Zap, Server, Settings, Sun, Moon, ArrowRight,
+  MonitorPlay,
+  ListTodo,
+  UserCheck
+} from 'lucide-react';
 
 interface MainDashboardProps {
   onRoleSelect: (role: UserRole, subView?: string) => void;
@@ -35,95 +42,113 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
 
   const themeStyles = {
     light: {
-      card: 'bg-white border-[#D2D2D7] shadow-sm',
-      btn: 'bg-[#F5F5F7] hover:bg-[#E8E8ED] border-[#D2D2D7] text-[#1D1D1F]',
+      bg: 'bg-[#F5F5F7]',
+      orb1: 'bg-blue-400/20',
+      orb2: 'bg-purple-400/20',
+      card: 'bg-white/70 backdrop-blur-3xl border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]',
+      cardHeader: 'border-b border-black/5',
+      btn: 'bg-white hover:bg-slate-50 border-slate-200 text-[#1D1D1F] shadow-sm hover:shadow-md hover:border-[#0071e3]/30',
       accent: 'text-[#0071e3]',
       sub: 'text-[#86868b]',
       header: 'text-[#1D1D1F]',
+      iconBg: 'bg-slate-100',
+      iconColor: 'text-slate-600',
+      mobileBar: 'bg-white/80 border-b border-[#D2D2D7]',
       drawer: 'bg-white/95 backdrop-blur-xl border-r border-[#D2D2D7]',
-      mobileBar: 'bg-white/80 border-b border-[#D2D2D7]'
+      chartBg: 'bg-slate-100',
+      chartFill: 'bg-[#0071e3]'
     },
     dark: {
-      card: 'bg-[#1D1D1F] border-[#333] shadow-2xl',
-      btn: 'bg-[#2D2D2D] hover:bg-[#3D3D3D] border-[#444] text-white',
+      bg: 'bg-[#000000]',
+      orb1: 'bg-blue-600/20',
+      orb2: 'bg-purple-600/20',
+      card: 'bg-[#111111]/80 backdrop-blur-3xl border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.5)]',
+      cardHeader: 'border-b border-white/5',
+      btn: 'bg-white/5 hover:bg-white/10 border-white/10 text-white shadow-sm hover:shadow-[0_0_20px_rgba(10,132,255,0.2)] hover:border-[#0A84FF]/50',
       accent: 'text-[#0A84FF]',
       sub: 'text-[#86868b]',
       header: 'text-white',
-      drawer: 'bg-[#1D1D1F]/95 backdrop-blur-xl border-r border-[#333]',
-      mobileBar: 'bg-black/80 border-b border-[#333]'
+      iconBg: 'bg-white/10',
+      iconColor: 'text-white/80',
+      mobileBar: 'bg-black/80 border-b border-white/10',
+      drawer: 'bg-black/95 backdrop-blur-xl border-r border-white/10',
+      chartBg: 'bg-white/5',
+      chartFill: 'bg-[#0A84FF]'
     },
     titanium: {
-      card: 'bg-[#4D4D4D] border-[#5D5D5D] shadow-2xl',
-      btn: 'bg-[#5D5D5D] hover:bg-[#6D6D6D] border-[#7D7D7D] text-[#E8E8ED]',
+      bg: 'bg-[#1A1A1A]',
+      orb1: 'bg-blue-500/10',
+      orb2: 'bg-emerald-500/10',
+      card: 'bg-[#252525]/90 backdrop-blur-3xl border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.4)]',
+      cardHeader: 'border-b border-white/5',
+      btn: 'bg-[#333333] hover:bg-[#444444] border-[#555555] text-white shadow-sm hover:shadow-md hover:border-[#0A84FF]/40',
       accent: 'text-[#0A84FF]',
       sub: 'text-[#A1A1A6]',
       header: 'text-[#E8E8ED]',
+      iconBg: 'bg-[#444]',
+      iconColor: 'text-[#ccc]',
+      mobileBar: 'bg-[#3D3D3D]/80 border-b border-[#4D4D4D]',
       drawer: 'bg-[#4D4D4D]/95 backdrop-blur-xl border-r border-[#5D5D5D]',
-      mobileBar: 'bg-[#3D3D3D]/80 border-b border-[#4D4D4D]'
+      chartBg: 'bg-[#333]',
+      chartFill: 'bg-[#0A84FF]'
     }
   };
 
   const s = themeStyles[theme];
 
-  const FlowStage = ({ stage, idx, isVertical = false }: { stage: typeof FLOW_STAGES[0], idx: number, isVertical?: boolean }) => {
-    const isComplete = stage.label === 'Complete';
-    
-    return (
-      <button 
-        onClick={() => !isComplete && onRoleSelect(UserRole.PUBLIC, stage.subView)}
-        disabled={isComplete}
-        className={`flex ${isVertical ? 'flex-row items-center w-full gap-4 p-4' : 'flex-col items-center gap-4'} group min-w-0 transition-all ${isComplete ? 'cursor-default opacity-80' : 'active:scale-95'}`}
-      >
-        <div className={`
-          ${isVertical ? 'w-16 h-16 rounded-2xl' : 'w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-[2rem] lg:rounded-[2.5rem]'} 
-          flex flex-col items-center justify-center transition-all duration-300 bg-[#1A1A1A] border border-white/10 ${!isComplete && 'group-hover:border-white/30 group-hover:bg-[#252525]'} relative shadow-2xl shrink min-w-0
-        `}>
-          <span className={`
-            ${isVertical ? 'text-lg' : 'text-2xl md:text-3xl lg:text-5xl'} 
-            font-black text-white transition-all duration-300 ${!isComplete && 'group-hover:scale-110'}
-          `}>{getCount(stage.status)}</span>
+  const StaffPortalButton = ({ role, label, icon: Icon }: { role: UserRole, label: string, icon: any }) => (
+    <button 
+      onClick={() => onRoleSelect(role)}
+      className={`w-full flex items-center justify-between p-4 sm:p-5 rounded-[2rem] border transition-all duration-300 group ${s.btn}`}
+    >
+      <div className="flex items-center gap-4 sm:gap-5">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${s.iconBg} group-hover:scale-110 group-hover:bg-[#0A84FF]/10 group-hover:text-[#0A84FF]`}>
+          <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${s.iconColor} group-hover:text-[#0A84FF] transition-colors`} />
         </div>
-        
-        {!isVertical && (
-          <div className="flex flex-col items-center gap-2">
-            <span className={`text-[8px] lg:text-[10px] font-black uppercase tracking-[0.1em] text-white/40 ${!isComplete && 'group-hover:text-white/80'} transition-colors text-center leading-tight whitespace-nowrap`}>
-              {stage.label}
-            </span>
-            <div className={`w-1.5 h-1.5 rounded-full ${stage.dotColor} shadow-[0_0_10px_rgba(255,255,255,0.1)]`}></div>
-          </div>
-        )}
+        <span className={`text-xs sm:text-sm md:text-base font-black uppercase tracking-widest group-hover:translate-x-2 transition-transform duration-300 ${s.header}`}>{label}</span>
+      </div>
+      <ArrowRight className={`w-5 h-5 sm:w-6 sm:h-6 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ${s.accent}`} />
+    </button>
+  );
 
-        {isVertical && (
-          <div className="flex-1 flex flex-col min-w-0 text-left">
-            <span className={`text-[10px] font-black uppercase tracking-widest text-white/80`}>{stage.label}</span>
-            <div className="flex items-center gap-2 mt-1">
-               <div className={`w-2 h-2 rounded-full ${stage.dotColor}`}></div>
-               <span className={`text-[8px] font-bold uppercase tracking-widest text-white/40`}>Live Data</span>
-            </div>
-          </div>
-        )}
-      </button>
-    );
-  };
+  const PublicBoardButton = ({ id, label, icon: Icon }: { id: string, label: string, icon: any }) => (
+    <button 
+      onClick={() => onRoleSelect(UserRole.PUBLIC, id)}
+      className={`w-full flex items-center justify-between p-4 sm:p-5 rounded-[2rem] border transition-all duration-300 group ${s.btn}`}
+    >
+      <div className="flex items-center gap-4 sm:gap-5">
+        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${s.iconBg} group-hover:scale-110 group-hover:bg-[#0A84FF]/10 group-hover:text-[#0A84FF]`}>
+          <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${s.iconColor} group-hover:text-[#0A84FF] transition-colors`} />
+        </div>
+        <span className={`text-xs sm:text-sm md:text-base font-black uppercase tracking-widest group-hover:translate-x-2 transition-transform duration-300 ${s.header}`}>{label}</span>
+      </div>
+      <MonitorPlay className={`w-5 h-5 sm:w-6 sm:h-6 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ${s.accent}`} />
+    </button>
+  );
 
   return (
-    <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 pb-20 pt-20 sm:pt-2 flex flex-col items-center relative">
+    <div className={`min-h-screen w-full flex flex-col relative overflow-hidden ${s.bg}`}>
+      {/* Ambient Background Orbs */}
+      <div className={`absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] pointer-events-none ${s.orb1}`}></div>
+      <div className={`absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full blur-[120px] pointer-events-none ${s.orb2}`}></div>
+
       {/* Mobile Top Bar */}
-      <div className={`sm:hidden absolute top-0 left-0 right-0 z-[60] h-16 flex items-center justify-between px-6 backdrop-blur-md shadow-lg ${s.mobileBar}`}>
+      <div className={`xl:hidden fixed top-0 left-0 right-0 z-[60] h-16 flex items-center justify-between px-6 backdrop-blur-xl shadow-lg ${s.mobileBar}`}>
         <button 
           onClick={() => setIsDrawerOpen(true)}
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 border ${s.btn}`}
+          className={`w-10 h-10 rounded-[1.5rem] flex items-center justify-center transition-all active:scale-90 border ${s.btn}`}
         >
-          <div className="flex flex-col gap-1">
-            <div className={`w-4 h-0.5 rounded-full ${theme === 'light' ? 'bg-black' : 'bg-white'}`}></div>
+          <div className="flex flex-col gap-1.5 items-center">
             <div className={`w-5 h-0.5 rounded-full ${theme === 'light' ? 'bg-black' : 'bg-white'}`}></div>
-            <div className={`w-3 h-0.5 rounded-full ${theme === 'light' ? 'bg-black' : 'bg-white'}`}></div>
+            <div className={`w-3 h-0.5 rounded-full ${theme === 'light' ? 'bg-black' : 'bg-white'} -ml-2`}></div>
           </div>
         </button>
-        
+        <span className={`text-sm font-black uppercase tracking-widest ${s.header}`}>HospitalFlow</span>
+        <button onClick={onThemeToggle} className={`w-10 h-10 rounded-[1.5rem] flex items-center justify-center border ${s.btn}`}>
+           {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+        </button>
       </div>
 
-      {/* Mobile Sidebar Drawer */}
       <AnimatePresence>
         {isDrawerOpen && (
           <>
@@ -132,7 +157,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsDrawerOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] sm:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] xl:hidden"
             />
             <motion.div 
               drag="x"
@@ -147,197 +172,222 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className={`fixed top-0 left-0 bottom-0 w-[280px] z-[80] sm:hidden shadow-2xl flex flex-col cursor-grab active:cursor-grabbing ${s.drawer}`}
+              className={`fixed top-0 left-0 bottom-0 w-[280px] z-[80] xl:hidden shadow-2xl flex flex-col cursor-grab active:cursor-grabbing ${s.drawer}`}
             >
-              <div className="p-8 border-b border-white/5 flex items-center justify-between gap-4">
+              <div className={`p-8 border-b flex items-center justify-between gap-4 ${s.cardHeader}`}>
                 <div>
-                  <h3 className={`text-xl font-black tracking-tighter uppercase ${s.accent}`}>Live Status</h3>
-                  <p className={`text-[9px] font-black uppercase tracking-widest mt-1 opacity-50 ${s.sub}`}>Operational Telemetry</p>
-                </div>
-                
-                <div className="flex flex-col gap-2">
-                  <button 
-                    onClick={() => { onThemeToggle(); setIsDrawerOpen(false); }}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all active:scale-95 shadow-md ${s.btn}`}
-                  >
-                    {theme === 'light' ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M17.66 6.34l1.42-1.42"/></svg>
-                    )}
-                  </button>
-                  <button 
-                    onClick={() => { onSettings(); setIsDrawerOpen(false); }}
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center border transition-all active:scale-95 shadow-md ${s.btn}`}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.72V20a2 2 0 002 2h.44a2 2 0 002-2v-.17a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  </button>
+                  <h3 className={`text-xl font-black tracking-tighter uppercase ${s.accent}`}>Menu</h3>
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-2 apple-scroll">
-                {FLOW_STAGES.map((stage, idx) => (
-                  <div key={`vertical-${stage.status}-${idx}`}>
-                    <FlowStage stage={stage} idx={idx} isVertical />
-                  </div>
-                ))}
-              </div>
-              <div className="p-8 border-t border-white/5">
-                <p className={`text-[8px] font-black uppercase tracking-[0.3em] opacity-30 ${s.sub}`}>
-                  Authorized Access Only
-                </p>
+                <StaffPortalButton role={UserRole.GATE} label="Gate Security" icon={Shield} />
+                <StaffPortalButton role={UserRole.RECEPTION} label="Admission Desk" icon={UserPlus} />
+                <StaffPortalButton role={UserRole.CHECKIN} label="Check In" icon={FileCheck} />
+                <StaffPortalButton role={UserRole.DOCTOR} label="Doctor Portal" icon={Stethoscope} />
+                <StaffPortalButton role={UserRole.MEDICAL} label="Treatment Station" icon={Syringe} />
+                <StaffPortalButton role={UserRole.PHARMACY} label="Pharmacy & Billing" icon={Pill} />
+                <StaffPortalButton role={UserRole.WARD_CARE} label="Ward Management" icon={Bed} />
+                {isAdmin && <StaffPortalButton role={UserRole.ADMIN} label="Admin Console" icon={Lock} />}
+                
+                <div className="mt-8 mb-4 px-2">
+                  <h3 className={`text-xs font-black uppercase tracking-widest opacity-50 ${s.sub}`}>Public Boards</h3>
+                </div>
+                <PublicBoardButton id="reception" label="Reception" icon={MonitorPlay} />
+                <PublicBoardButton id="checkin" label="Check In" icon={MonitorPlay} />
+                <PublicBoardButton id="doctor" label="Doctor" icon={MonitorPlay} />
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Dashboard Controls */}
-      <div className={`absolute top-4 left-0 right-0 px-4 sm:px-6 md:px-8 hidden sm:flex justify-between items-center z-50 pointer-events-none ${isDrawerOpen ? 'hidden' : ''}`}>
-        <button 
-          onClick={onSettings}
-          className={`p-2.5 sm:p-3 rounded-full transition-all pointer-events-auto shadow-lg backdrop-blur-md mt-14 sm:mt-0 ${s.btn}`}
-          title="System Settings"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 sm:w-6 sm:h-6">
-            <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.72V20a2 2 0 002 2h.44a2 2 0 002-2v-.17a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-        </button>
-
-        <button 
-          onClick={onThemeToggle}
-          className={`p-2.5 sm:p-3 rounded-full transition-all pointer-events-auto shadow-lg backdrop-blur-md mt-14 sm:mt-0 ${s.btn}`}
-          title="Change Appearance"
-        >
-          {theme === 'light' ? (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5 sm:w-6 sm:h-6"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-          ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5 sm:w-6 sm:h-6"><circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M17.66 6.34l1.42-1.42"/></svg>
-          )}
-        </button>
-      </div>
-
-      <header className="text-center mb-10 mt-20 sm:mt-24 w-full max-w-4xl flex-shrink-0 px-4">
-        <h1 className={`text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-2 transition-all ${s.header}`}>
-          Hospital<span className={s.accent}>Flow</span>
-        </h1>
-        <p className={`hidden sm:block text-[10px] sm:text-xs font-bold uppercase tracking-[0.4em] sm:tracking-[0.6em] transition-all ${s.sub}`}>
-          Intelligent EMR Logistics & Throughput Engine
-        </p>
-      </header>
-
-      {/* Visual Flow Diagram - HERO Pipeline Refactored for Absolute Fit */}
-      <div className="hidden sm:block w-full mb-10 py-10 bg-[#000]/60 rounded-[4rem] border border-white/5 shadow-2xl shrink-0 overflow-x-hidden max-w-[100vw]">
-        <div className="flex flex-nowrap justify-center items-center gap-x-2 md:gap-x-4 lg:gap-x-6 px-4 md:px-10 relative mx-auto max-w-full">
-          {FLOW_STAGES.map((stage, idx) => (
-            <React.Fragment key={`${stage.status}-${idx}`}>
-              <FlowStage stage={stage} idx={idx} />
-              {idx < FLOW_STAGES.length - 1 && (
-                <div className="w-4 md:w-8 lg:w-16 h-[2px] rounded-full shrink bg-white/10 mt-[-40px] md:mt-[-55px] lg:mt-[-65px]"></div>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 w-full mb-10 flex-grow px-2">
-        <div className={`p-6 md:p-8 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-500 flex flex-col shadow-2xl ${s.card}`}>
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex flex-col">
-              <h3 className={`text-lg md:text-xl font-black tracking-tight uppercase ${s.accent}`}>Staff Portals</h3>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Internal Operations</span>
-            </div>
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-lg ${s.btn}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-            </div>
+      <div className="flex-1 flex flex-col items-center w-full max-w-[1600px] mx-auto px-4 sm:px-8 lg:px-12 pt-24 xl:pt-12 pb-24 relative z-10">
+        
+        {/* Header Section */}
+        <header className="w-full flex flex-col xl:flex-row items-center justify-between mb-12 gap-8">
+          <div className="flex flex-col items-center xl:items-start text-center xl:text-left">
+            <h1 className={`text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-none mb-2 ${s.header}`}>
+              Hospital<span className={s.accent}>Flow</span>
+            </h1>
+            <p className={`text-[10px] sm:text-xs font-black uppercase tracking-[0.4em] sm:tracking-[0.6em] ${s.sub}`}>
+              Intelligent EMR Logistics & Throughput Engine
+            </p>
           </div>
-          <div className="space-y-3 pr-2 apple-scroll">
-            {[
-              { role: UserRole.GATE, label: 'Gate Security' },
-              { role: UserRole.RECEPTION, label: 'Admission Desk' },
-              { role: UserRole.CHECKIN, label: 'Check In' },
-              { role: UserRole.DOCTOR, label: 'Doctor Portal' },
-              { role: UserRole.MEDICAL, label: 'Treatment Station' },
-              { role: UserRole.PHARMACY, label: 'Pharmacy & Billing' },
-              { role: UserRole.LAB, label: 'Laboratory Services' },
-              { role: UserRole.RADIOLOGY, label: 'Radiology / RIS' },
-              { role: UserRole.INVENTORY, label: 'Store & Inventory' },
-              { role: UserRole.WARD_CARE, label: 'Ward Management' },
-              { role: UserRole.BILLING, label: 'Discharge Desk' },
-              { role: UserRole.VISITOR_MGMT, label: 'Visitor Control' },
-              ...(isAdmin ? [{ role: UserRole.ADMIN, label: 'Admin Console' }] : []),
-            ].map((btn) => (
-              <button 
-                key={btn.role}
-                onClick={() => onRoleSelect(btn.role)} 
-                className={`w-full py-4 px-6 rounded-2xl text-left font-black transition-all flex justify-between items-center border shadow-md hover:shadow-lg hover:-translate-y-0.5 ${s.btn}`}
-              >
-                <span className="text-xs sm:text-sm uppercase tracking-widest">{btn.label}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 18l6-6-6-6"/></svg>
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className={`p-6 md:p-8 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-500 flex flex-col shadow-2xl ${s.card}`}>
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex flex-col">
-              <h3 className={`text-lg md:text-xl font-black tracking-tight uppercase ${s.accent}`}>Public Boards</h3>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${s.sub}`}>Real-time Displays</span>
-            </div>
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-lg ${s.btn}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
+          {/* Desktop Controls */}
+          <div className="hidden xl:flex items-center gap-4">
+            <button 
+              onClick={onSettings}
+              className={`px-6 py-4 rounded-[2rem] border transition-all flex items-center gap-3 shadow-lg group ${s.btn}`}
+            >
+              <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+              <span className="text-xs font-black uppercase tracking-widest">Settings</span>
+            </button>
+            <button 
+              onClick={onThemeToggle}
+              className={`w-14 h-14 rounded-[2rem] border transition-all flex items-center justify-center shadow-lg group ${s.btn}`}
+            >
+              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </button>
           </div>
-          <div className="space-y-3 pr-2 apple-scroll">
-            {[
-              { id: 'reception', label: 'Reception List' },
-              { id: 'checkin', label: 'Check In Status' },
-              { id: 'doctor', label: 'Consultations' },
-              { id: 'treatment', label: 'Treatment Board' },
-              { id: 'medical', label: 'Pharmacy Board' },
-              { id: 'ward', label: 'Ward Occupancy' },
-            ].map((btn) => (
-              <button 
-                key={btn.id}
-                onClick={() => onRoleSelect(UserRole.PUBLIC, btn.id)} 
-                className={`w-full py-4 px-6 rounded-2xl text-left font-black transition-all flex justify-between items-center border shadow-md hover:shadow-lg hover:-translate-y-0.5 ${s.btn}`}
-              >
-                <span className="text-xs sm:text-sm uppercase tracking-widest">{btn.label}</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 18l6-6-6-6"/></svg>
-              </button>
-            ))}
-          </div>
-        </div>
+        </header>
 
-        <div className={`p-6 md:p-8 rounded-[2.5rem] md:rounded-[3.5rem] border transition-all duration-500 flex flex-col items-center text-center justify-between shadow-2xl sm:col-span-2 lg:col-span-1 ${s.card}`}>
-          <div className="w-full">
-            <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 border shadow-xl ${s.btn}`}>
-               <span className="text-3xl">📊</span>
-            </div>
-            <h3 className={`text-xl font-black mb-1 uppercase tracking-tighter ${s.accent}`}>Clinical Analytics</h3>
-            <p className={`text-[10px] mb-8 font-black tracking-[0.3em] uppercase ${s.sub}`}>Intelligent Throughput</p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4 w-full px-2">
-              <div className={`p-6 rounded-[2rem] border transition-all shadow-lg ${s.btn}`}>
-                <div className="text-4xl sm:text-5xl font-black mb-2 tracking-tighter">{patients.length}</div>
-                <div className={`text-[10px] uppercase tracking-[0.2em] font-black ${s.sub}`}>Total Patient Flow</div>
-              </div>
-              <div className={`p-6 rounded-[2rem] border transition-all shadow-lg ${s.btn}`}>
-                <div className="text-4xl sm:text-5xl font-black mb-2 tracking-tighter">
-                  {patients.filter(p => p.status === PatientStatus.COMPLETED || p.status === PatientStatus.DISCHARGED).length}
-                </div>
-                <div className={`text-[10px] uppercase tracking-[0.2em] font-black ${s.sub}`}>Total Outflows</div>
-              </div>
-            </div>
+        {/* Hero Telemetry Pipeline */}
+        <div className={`hidden sm:flex w-full mb-12 p-8 sm:p-12 ${s.card} rounded-[3rem] sm:rounded-[4rem] border relative overflow-hidden flex-col items-center`}>
+          <div className={`flex justify-between items-center w-full mb-12 relative z-10 pb-6 ${s.cardHeader}`}>
+             <div className="flex items-center gap-3">
+               <Activity className={`w-6 h-6 ${s.accent} animate-pulse`} />
+               <span className={`text-sm font-black uppercase tracking-[0.3em] ${s.header}`}>Live Telemetry</span>
+             </div>
+             <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 shadow-lg">
+               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></div>
+               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">System Online</span>
+             </div>
           </div>
           
-          <div className={`mt-8 text-[9px] font-black tracking-[0.4em] uppercase ${s.sub} opacity-50`}>
-            Verified System Integrity
+          <div className="w-full flex items-center justify-between relative z-10 px-4 md:px-8 lg:px-16">
+            {/* The animated connection line */}
+            <div className="absolute left-8 right-8 top-1/2 h-1 bg-white/5 -translate-y-1/2 rounded-full overflow-hidden">
+               <motion.div 
+                 className={`h-full w-1/3 bg-gradient-to-r from-transparent via-[#0A84FF] to-transparent`}
+                 animate={{ x: ['-100%', '300%'] }}
+                 transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+               />
+            </div>
+            
+            {FLOW_STAGES.map((stage, idx) => {
+              const isComplete = stage.label === 'Complete';
+              return (
+                <button 
+                  key={idx}
+                  onClick={() => !isComplete && onRoleSelect(UserRole.PUBLIC, stage.subView)}
+                  disabled={isComplete}
+                  className={`relative z-10 flex flex-col items-center group transition-all ${isComplete ? 'cursor-default' : 'active:scale-95'}`}
+                >
+                  <div className={`w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full flex items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-2xl border border-white/20 shadow-2xl transition-all duration-500 ${!isComplete && 'group-hover:scale-110 group-hover:border-white/60 group-hover:shadow-[#0A84FF]/20'} overflow-hidden`}>
+                     <div className={`absolute inset-0 opacity-20 ${!isComplete && 'group-hover:opacity-40'} transition-opacity duration-500 ${stage.dotColor}`}></div>
+                     <span className={`text-2xl md:text-3xl lg:text-4xl font-black text-white ${!isComplete && 'group-hover:scale-110'} transition-transform duration-500`}>
+                        {getCount(stage.status)}
+                     </span>
+                  </div>
+                  <span className={`absolute -bottom-8 whitespace-nowrap text-[9px] md:text-[10px] font-black uppercase tracking-widest text-[#86868b] ${!isComplete && 'group-hover:text-[#0A84FF] dark:group-hover:text-white'} transition-colors duration-300`}>
+                    {stage.label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
+        </div>
+
+        {/* Main Grids */}
+        <div className="w-full grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 sm:gap-12 flex-grow">
+          
+          {/* Staff Portals */}
+          <div className={`w-full p-6 sm:p-10 rounded-[3rem] sm:rounded-[4rem] border shadow-2xl flex flex-col ${s.card}`}>
+            <div className={`flex items-center justify-between mb-8 pb-6 ${s.cardHeader}`}>
+              <div className="flex flex-col">
+                <h3 className={`text-xl sm:text-2xl font-black tracking-tighter uppercase ${s.header}`}>Staff Portals</h3>
+                <span className={`text-[10px] font-black uppercase tracking-widest mt-1 ${s.sub}`}>Internal Operations</span>
+              </div>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${s.iconBg}`}>
+                <Shield className={`w-6 h-6 ${s.accent}`} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 overflow-y-auto pr-2 apple-scroll flex-grow max-h-[600px]">
+              <StaffPortalButton role={UserRole.GATE} label="Gate Security" icon={Shield} />
+              <StaffPortalButton role={UserRole.RECEPTION} label="Admission Desk" icon={UserPlus} />
+              <StaffPortalButton role={UserRole.CHECKIN} label="Check In" icon={FileCheck} />
+              <StaffPortalButton role={UserRole.DOCTOR} label="Doctor Portal" icon={Stethoscope} />
+              <StaffPortalButton role={UserRole.MEDICAL} label="Treatment Station" icon={Syringe} />
+              <StaffPortalButton role={UserRole.PHARMACY} label="Pharmacy & Billing" icon={Pill} />
+              <StaffPortalButton role={UserRole.LAB} label="Laboratory Services" icon={FlaskConical} />
+              <StaffPortalButton role={UserRole.RADIOLOGY} label="Radiology / RIS" icon={Radio} />
+              <StaffPortalButton role={UserRole.INVENTORY} label="Store & Inventory" icon={Package} />
+              <StaffPortalButton role={UserRole.WARD_CARE} label="Ward Management" icon={Bed} />
+              <StaffPortalButton role={UserRole.BILLING} label="Discharge Desk" icon={Receipt} />
+              <StaffPortalButton role={UserRole.VISITOR_MGMT} label="Visitor Control" icon={Users} />
+              {isAdmin && <StaffPortalButton role={UserRole.ADMIN} label="Admin Console" icon={Lock} />}
+            </div>
+          </div>
+
+          {/* Public Boards */}
+          <div className={`w-full p-6 sm:p-10 rounded-[3rem] sm:rounded-[4rem] border shadow-2xl flex flex-col ${s.card}`}>
+            <div className={`flex items-center justify-between mb-8 pb-6 ${s.cardHeader}`}>
+              <div className="flex flex-col">
+                <h3 className={`text-xl sm:text-2xl font-black tracking-tighter uppercase ${s.header}`}>Public Boards</h3>
+                <span className={`text-[10px] font-black uppercase tracking-widest mt-1 ${s.sub}`}>Real-time Displays</span>
+              </div>
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${s.iconBg}`}>
+                <MonitorPlay className={`w-6 h-6 ${s.accent}`} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 overflow-y-auto pr-2 apple-scroll flex-grow max-h-[600px]">
+              <PublicBoardButton id="reception" label="Reception List" icon={ListTodo} />
+              <PublicBoardButton id="checkin" label="Check In Status" icon={UserCheck} />
+              <PublicBoardButton id="doctor" label="Consultations" icon={Stethoscope} />
+              <PublicBoardButton id="treatment" label="Treatment Board" icon={Syringe} />
+              <PublicBoardButton id="medical" label="Pharmacy Board" icon={Pill} />
+              <PublicBoardButton id="ward" label="Ward Occupancy" icon={Bed} />
+            </div>
+          </div>
+
+          {/* Clinical Analytics */}
+          <div className={`w-full p-6 sm:p-10 rounded-[3rem] sm:rounded-[4rem] border shadow-2xl flex flex-col justify-between ${s.card} relative overflow-hidden group lg:col-span-2 xl:col-span-1`}>
+            {/* Ambient Background Chart effect */}
+            <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-[#0A84FF]/5 to-transparent pointer-events-none transition-opacity duration-1000 group-hover:opacity-100 opacity-50"></div>
+            
+            <div className="relative z-10 w-full flex-grow flex flex-col">
+              <div className={`flex items-center justify-between mb-12 pb-6 ${s.cardHeader}`}>
+                <div className="flex flex-col">
+                  <h3 className={`text-xl sm:text-2xl font-black tracking-tighter uppercase ${s.header}`}>Clinical Analytics</h3>
+                  <span className={`text-[10px] font-black uppercase tracking-widest mt-1 ${s.sub}`}>Intelligent Throughput</span>
+                </div>
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${s.iconBg}`}>
+                  <Activity className={`w-6 h-6 ${s.accent}`} />
+                </div>
+              </div>
+              
+              <div className="flex flex-col justify-center gap-12 flex-grow sm:flex-row xl:flex-col">
+                <div className="flex flex-col group/stat cursor-default flex-1">
+                  <div className="flex items-end gap-4 mb-2">
+                    <span className={`text-7xl sm:text-8xl lg:text-9xl font-black tracking-tighter leading-none ${s.header} transition-transform duration-500 group-hover/stat:scale-105 origin-left`}>
+                      {patients.length}
+                    </span>
+                    <span className="text-2xl sm:text-3xl text-emerald-500 font-black mb-2 animate-bounce">↑</span>
+                  </div>
+                  <span className={`text-xs sm:text-sm font-black uppercase tracking-[0.3em] ${s.sub}`}>Total Patient Flow</span>
+                  <div className={`w-full h-2 mt-4 rounded-full overflow-hidden ${s.chartBg}`}>
+                    <div className={`h-full ${s.chartFill} w-full transition-all duration-1000 origin-left scale-x-100`}></div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col group/stat cursor-default flex-1">
+                  <div className="flex items-end gap-4 mb-2">
+                    <span className={`text-7xl sm:text-8xl lg:text-9xl font-black tracking-tighter leading-none ${s.header} transition-transform duration-500 group-hover/stat:scale-105 origin-left`}>
+                      {patients.filter(p => p.status === PatientStatus.COMPLETED || p.status === PatientStatus.DISCHARGED).length}
+                    </span>
+                    <span className="text-2xl sm:text-3xl text-blue-500 font-black mb-2">→</span>
+                  </div>
+                  <span className={`text-xs sm:text-sm font-black uppercase tracking-[0.3em] ${s.sub}`}>Total Outflows</span>
+                  <div className={`w-full h-2 mt-4 rounded-full overflow-hidden ${s.chartBg}`}>
+                    <div 
+                      className={`h-full bg-emerald-500 transition-all duration-1000`} 
+                      style={{ width: `${Math.max(5, (patients.filter(p => p.status === PatientStatus.COMPLETED || p.status === PatientStatus.DISCHARGED).length / Math.max(1, patients.length)) * 100)}%`}}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className={`relative z-10 mt-12 flex items-center justify-between w-full pt-6 ${s.cardHeader}`}>
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-500" />
+                <span className={`text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500`}>System Secured</span>
+              </div>
+              <span className={`text-[8px] font-black uppercase tracking-[0.2em] opacity-40 ${s.sub}`}>v2.0 Enterprise</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

@@ -137,16 +137,18 @@ const PublicDisplayView: React.FC<{
   thresholds: SystemThresholds;
   roster: DoctorRoster[];
   doctors: Doctor[];
+  wards?: Ward[];
   onBack?: () => void;
   isAdmin?: boolean;
   onEditPatient?: (p: Patient) => void;
   onDeletePatient?: (p: Patient) => void;
-}> = ({ patients, viewType, theme, thresholds, roster, doctors, onBack, isAdmin, onEditPatient, onDeletePatient }) => {
+}> = ({ patients, viewType, theme, thresholds, roster, doctors, wards = [], onBack, isAdmin, onEditPatient, onDeletePatient }) => {
   const [announcingPatient, setAnnouncingPatient] = useState<Patient | null>(null);
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
   const [targetDoctorId, setTargetDoctorId] = useState<string>('');
   const [targetSection, setTargetSection] = useState<string>('');
   const [targetTreatment, setTargetTreatment] = useState<string>('');
+  const [targetWard, setTargetWard] = useState<string>('');
   const [isLocked, setIsLocked] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const lastAnnouncedRef = useRef<Record<string, number>>({});
@@ -244,6 +246,10 @@ const PublicDisplayView: React.FC<{
         if (viewType === 'treatment' && targetTreatment) {
           if (p.assignedTreatmentType && p.assignedTreatmentType !== targetTreatment) return false;
         }
+        if (viewType === 'ward' && targetWard) {
+          if (p.allocatedBedNumber && !p.allocatedBedNumber.startsWith(targetWard)) return false; 
+          // Note: Ward beds are usually named like "GENERAL-1", so we check if bed starts with targetWard name or ID
+        }
         return true;
       }).length;
   };
@@ -300,6 +306,18 @@ const PublicDisplayView: React.FC<{
       const baseWait = (i + 1) * 15;
       const waitTime = Math.max(1, baseWait - elapsedMinutes);
       const statusText = p.status === PatientStatus.GATE_REGISTERED ? 'Proceeding to Gate' : p.status === PatientStatus.RECEPTION_WAITING ? 'Awaiting Front Desk' : STATUS_LABELS[p.status];
+
+      const getProgress = (st: PatientStatus) => {
+        if (st === PatientStatus.GATE_REGISTERED) return { pct: 20, label: "Registration Successful" };
+        if (st === PatientStatus.RECEPTION_WAITING) return { pct: 40, label: "Proceed to Reception" };
+        if (st === PatientStatus.PAYMENT_DONE) return { pct: 50, label: "Proceed to Check-in" };
+        if (st === PatientStatus.CHECKIN_WAITING) return { pct: 60, label: "Awaiting Vitals" };
+        if (st === PatientStatus.DOCTOR_WAITING) return { pct: 80, label: "Doctor Queue" };
+        if (st === PatientStatus.CONSULTATION_DONE) return { pct: 100, label: "Consultation Complete" };
+        return { pct: 20, label: "Processing" };
+      };
+      
+      const { pct, label } = getProgress(p.status);
 
       let containerCls = 'p-5 min-h-[110px] bg-[#1C1C1E] dark:bg-[#2C2C2E] border border-white/10 rounded-[1.5rem] flex items-center gap-6 shrink-0 shadow-lg';
       let numCls = 'text-[40px] w-16 text-center';
@@ -382,13 +400,26 @@ const PublicDisplayView: React.FC<{
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between items-end mt-4 gap-4 overflow-hidden">
-                <div className={`${pillCls} rounded-full border-2 border-white/20 bg-white/5 backdrop-blur-sm shrink-0 flex items-center justify-center`}>
-                  <span className={`text-white ${pillTextCls} font-black uppercase tracking-[0.1em]`}>{p.category.split('(')[0].trim()}</span>
+              <div className="flex flex-col mt-4 gap-2 overflow-hidden w-full">
+                <div className="flex justify-between items-end gap-4 w-full mb-2">
+                  <div className={`${pillCls} rounded-full border-2 border-white/20 bg-white/5 backdrop-blur-sm shrink-0 flex items-center justify-center`}>
+                    <span className={`text-white ${pillTextCls} font-black uppercase tracking-[0.1em]`}>{p.category.split('(')[0].trim()}</span>
+                  </div>
+                  <div className="text-right min-w-0 flex-1">
+                    <div className={`text-white ${statusCls} font-black uppercase tracking-wider truncate`}>{statusText}</div>
+                    <div className={`text-white/50 ${waitCls} font-bold uppercase tracking-[0.05em] truncate`}>EST. WAIT: <span className="text-white font-black">{waitTime} MIN</span></div>
+                  </div>
                 </div>
-                <div className="text-right min-w-0 flex-1">
-                  <div className={`text-white ${statusCls} font-black uppercase tracking-wider truncate`}>{statusText}</div>
-                  <div className={`text-white/50 ${waitCls} font-bold uppercase tracking-[0.05em] truncate`}>EST. WAIT: <span className="text-white font-black">{waitTime} MIN</span></div>
+                
+                {/* Visual Goal Gradient Progress Bar */}
+                <div className="w-full space-y-1">
+                   <div className="flex justify-between items-center px-1">
+                     <span className={`text-white/80 font-black tracking-widest uppercase ${i === 0 ? 'text-xs' : 'text-[8px]'}`}>{label}</span>
+                     <span className={`text-white font-black ${i === 0 ? 'text-xs' : 'text-[8px]'}`}>{pct}% Complete</span>
+                   </div>
+                   <div className={`w-full bg-black/20 rounded-full overflow-hidden ${i === 0 ? 'h-3' : 'h-1.5'}`}>
+                     <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${pct}%` }}></div>
+                   </div>
                 </div>
               </div>
               <motion.div className="absolute inset-0 pointer-events-none bg-white/5" animate={{ opacity: [0.05, 0.15, 0.05] }} transition={{ duration: 2, repeat: Infinity }} />
@@ -489,7 +520,59 @@ const PublicDisplayView: React.FC<{
     );
   };
 
+  const needsSelection = () => {
+    if (viewType === 'doctor' && !targetDoctorId) return true;
+    if (viewType === 'checkin' && !targetSection) return true;
+    if (viewType === 'treatment' && !targetTreatment) return true;
+    if (viewType === 'ward' && !targetWard) return true;
+    return false;
+  };
+
+  const renderSelectionScreen = () => {
+    let items: {id: string, label: string}[] = [];
+    let onSelect = (id: string) => {};
+    let title = "";
+
+    if (viewType === 'doctor') {
+      title = "Select Doctor";
+      items = doctors.map(d => ({ id: d.id, label: d.name }));
+      onSelect = setTargetDoctorId;
+    } else if (viewType === 'checkin') {
+      title = "Select Section";
+      items = ['A', 'B', 'C'].map(s => ({ id: s, label: `Section ${s}` }));
+      onSelect = setTargetSection;
+    } else if (viewType === 'treatment') {
+      title = "Select Treatment Room";
+      items = TREATMENT_TYPES.map(t => ({ id: t, label: t }));
+      onSelect = setTargetTreatment;
+    } else if (viewType === 'ward') {
+      title = "Select Ward";
+      items = wards.map(w => ({ id: w.name, label: w.name }));
+      onSelect = setTargetWard;
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center h-full w-full p-10 animate-in fade-in zoom-in duration-500">
+        <h2 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-[0.2em] mb-12 drop-shadow-2xl">{title}</h2>
+        <div className="flex flex-wrap justify-center gap-6 max-w-7xl">
+          {items.map(item => (
+            <button
+              key={item.id}
+              onClick={() => onSelect(item.id)}
+              className="bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#0A84FF] hover:bg-[#0A84FF]/20 text-white rounded-[3rem] px-12 py-10 shadow-2xl transition-all hover:scale-105 active:scale-95 group flex items-center justify-center min-w-[250px]"
+            >
+              <span className="text-2xl sm:text-4xl font-black uppercase tracking-widest group-hover:text-[#0A84FF] drop-shadow-md">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const currentContent = (() => {
+    if (needsSelection()) {
+      return renderSelectionScreen();
+    }
     switch (viewType) {
       case 'reception': return renderList([PatientStatus.GATE_REGISTERED, PatientStatus.RECEPTION_WAITING, PatientStatus.PAYMENT_DONE]);
       case 'checkin': return renderList([PatientStatus.PAYMENT_DONE, PatientStatus.CHECKIN_WAITING]);
@@ -511,6 +594,14 @@ const PublicDisplayView: React.FC<{
       case 'ward': return 'Ward';
       default: return 'Flow';
     }
+  };
+
+  const getActiveEntityName = () => {
+    if (viewType === 'doctor' && targetDoctorId) return doctors.find(d => d.id === targetDoctorId)?.name || 'Doctor';
+    if (viewType === 'checkin' && targetSection) return `Section ${targetSection}`;
+    if (viewType === 'treatment' && targetTreatment) return targetTreatment;
+    if (viewType === 'ward' && targetWard) return targetWard;
+    return getBoardTitle();
   };
 
   return (
@@ -539,49 +630,26 @@ const PublicDisplayView: React.FC<{
         </div>
         
         <div className="flex-1 text-center">
-          <h1 className="text-7xl font-black text-white uppercase tracking-[0.15em] drop-shadow-2xl">{getBoardTitle()}</h1>
+          <h1 className="text-7xl font-black text-white uppercase tracking-[0.15em] drop-shadow-2xl">{getActiveEntityName()}</h1>
         </div>
         
-        <div className="flex items-center justify-end gap-6 w-[350px]">
+        <div className="flex items-center justify-end gap-6 w-[350px] relative">
           <h1 className="text-5xl font-black text-[#34C759] uppercase tracking-[0.1em] drop-shadow-2xl whitespace-nowrap">
             {Math.max(0, getFilteredListLength() - 2)} WAITING
           </h1>
-          <div className="absolute top-8 right-16 opacity-0 hover:opacity-100 transition-opacity flex items-center gap-4">
-            {viewType === 'doctor' && (
-            <select 
-              value={targetDoctorId} 
-              onChange={e => setTargetDoctorId(e.target.value)}
-              className="bg-white/10 text-white border border-white/20 rounded-xl px-4 py-2 outline-none text-sm font-bold"
-            >
-              <option value="">All Doctors</option>
-              {doctors.map(d => (
-                <option key={d.id} value={d.id} className="text-black">{d.name}</option>
-              ))}
-            </select>
-          )}
-          {viewType === 'checkin' && (
-            <select 
-              value={targetSection} 
-              onChange={e => setTargetSection(e.target.value)}
-              className="bg-white/10 text-white border border-white/20 rounded-xl px-4 py-2 outline-none text-sm font-bold"
-            >
-              <option value="">All Sections</option>
-              {['A', 'B', 'C'].map(s => (
-                <option key={s} value={s} className="text-black">Section {s}</option>
-              ))}
-            </select>
-          )}
-          {viewType === 'treatment' && (
-            <select 
-              value={targetTreatment} 
-              onChange={e => setTargetTreatment(e.target.value)}
-              className="bg-white/10 text-white border border-white/20 rounded-xl px-4 py-2 outline-none text-sm font-bold"
-            >
-              <option value="">All Treatments</option>
-              {TREATMENT_TYPES.map(t => (
-                <option key={t} value={t} className="text-black">{t}</option>
-              ))}
-            </select>
+          <div className="absolute top-16 right-0 flex items-center gap-4 z-50">
+            {!needsSelection() && ['doctor', 'checkin', 'treatment', 'ward'].includes(viewType) && (
+              <button
+                onClick={() => {
+                  setTargetDoctorId('');
+                  setTargetSection('');
+                  setTargetTreatment('');
+                  setTargetWard('');
+                }}
+                className="bg-[#1C1C1E] dark:bg-[#2C2C2E] hover:bg-white/10 text-white border border-white/20 rounded-2xl px-6 py-2 outline-none text-sm font-black tracking-widest uppercase shadow-xl transition-all"
+              >
+                Change Selection
+              </button>
             )}
           </div>
         </div>

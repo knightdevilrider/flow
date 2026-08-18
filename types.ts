@@ -165,6 +165,10 @@ export interface Patient {
   insuranceType?: string;
   isForeigner?: boolean;
   medicalHistory?: string;
+  publicDisplayConsent?: boolean;
+  labTests?: any[];
+  labResults?: any[];
+  tokenNumber?: string;
   
   // Medical History & Vital Details (Admin requested)
   bloodGroup?: string;
@@ -500,8 +504,11 @@ export type Theme = 'light' | 'dark' | 'titanium';
 export interface Workstation {
   id: string;
   name: string;
-  type: string;
-  status: 'active' | 'inactive' | 'maintenance';
+  type?: string;
+  status?: 'active' | 'inactive' | 'maintenance';
+  role?: string;
+  domain?: string;
+  createdAt?: number;
 }
 
 export interface CustomRole {

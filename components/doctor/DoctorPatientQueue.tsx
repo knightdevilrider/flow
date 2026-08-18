@@ -33,9 +33,9 @@ const DoctorPatientQueue: React.FC<DoctorPatientQueueProps> = ({
     <button 
       key={p.id}
       onClick={() => onSelectPatient && onSelectPatient(p)}
-      className={`w-full text-left p-3 sm:p-4 rounded-xl border flex flex-col gap-2 transition-all ${
+      className={`w-full text-left p-3 sm:p-4 rounded-xl border flex flex-col gap-2 transition-all max-sm:rounded-[2rem] ${
         isCurrent 
-          ? `${theme === 'light' ? 'bg-[#0071e3]/10 border-[#0071e3]/30 shadow-md' : 'bg-[#0A84FF]/10 border-[#0A84FF]/30 shadow-md'}` 
+          ? `${theme === 'light' ? 'bg-[#0071e3]/10 border-[#0071e3]/30 shadow-md max-sm:bg-purple-100 max-sm:border-purple-300 max-sm:text-purple-800' : 'bg-[#0A84FF]/10 border-[#0A84FF]/30 shadow-md max-sm:bg-purple-900/30 max-sm:border-[#D8B4FE]/50 max-sm:text-[#D8B4FE]'}` 
           : `hover:bg-black/5 dark:hover:bg-white/5 border-transparent ${s.card}`
       }`}
     >
@@ -84,7 +84,7 @@ const DoctorPatientQueue: React.FC<DoctorPatientQueueProps> = ({
         <div className="flex gap-2">
           <button 
             onClick={onHoldQueue}
-            className={`flex-1 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all ${
+            className={`flex-1 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all max-sm:rounded-[2rem] max-sm:py-3 ${
               isQueueHeld 
                 ? 'bg-amber-500 text-white shadow-lg animate-pulse' 
                 : `${s.btn} shadow-sm`
@@ -94,7 +94,7 @@ const DoctorPatientQueue: React.FC<DoctorPatientQueueProps> = ({
           </button>
           <button 
             onClick={onEmergencyBypass}
-            className={`flex-1 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white shadow-sm border border-red-500/20`}
+            className={`flex-1 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white shadow-sm border border-red-500/20 max-sm:rounded-[2rem] max-sm:py-3`}
           >
             Emergency Bypass
           </button>

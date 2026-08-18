@@ -13,11 +13,10 @@ const badPatient = {
   gender: 'M',
   idNumber: '1234',
   timestamp: undefined as any,
-  history: [
-    { stage: undefined as any, entryTime: undefined as any }
-  ],
-  status: undefined as any,
-  age: '30'
+  history: [{ stage: PatientStatus.GATE_REGISTERED, entryTime: Date.now() }],
+  status: PatientStatus.GATE_REGISTERED,
+  age: '30',
+  activeVisitorsCount: 0
 };
 
 const originalOnSnapshot = mockFirestore.onSnapshot;

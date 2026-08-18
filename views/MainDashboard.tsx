@@ -144,9 +144,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
           </div>
         </button>
         <span className={`text-sm font-black uppercase tracking-widest ${s.header}`}>HospitalFlow</span>
-        <button onClick={onThemeToggle} className={`w-10 h-10 rounded-[1.5rem] flex items-center justify-center border ${s.btn}`}>
-           {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-        </button>
+        
       </div>
 
       <AnimatePresence>
@@ -223,12 +221,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onRoleSelect, patients, t
               <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
               <span className="text-xs font-black uppercase tracking-widest">Settings</span>
             </button>
-            <button 
-              onClick={onThemeToggle}
-              className={`w-14 h-14 rounded-[2rem] border transition-all flex items-center justify-center shadow-lg group ${s.btn}`}
-            >
-              {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-            </button>
+            
           </div>
         </header>
 

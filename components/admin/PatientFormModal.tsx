@@ -12,9 +12,10 @@ interface PatientFormModalProps {
   initialData: Patient | null;
   theme: Theme;
   doctors: Doctor[];
+  restrictToBasicInfo?: boolean;
 }
 
-const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, onSave, initialData, theme, doctors }) => {
+const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, onSave, initialData, theme, doctors, restrictToBasicInfo = false }) => {
   const [isManualArea, setIsManualArea] = useState(false);
   const [formData, setFormData] = useState<Partial<Patient>>({
     name: '',
@@ -289,7 +290,9 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
 
           </div>
 
-          {/* Section 2: Medical Details */}
+          {!restrictToBasicInfo && (
+            <>
+            {/* Section 2: Medical Details */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 border-b border-white/5 pb-2">
               <Activity className="w-4 h-4 text-red-500" />
@@ -403,6 +406,9 @@ const PatientFormModal: React.FC<PatientFormModalProps> = ({ isOpen, onClose, on
               </div>
             </div>
           </div>
+
+          </>
+          )}
 
           <div className="flex gap-4 pt-8">
             <button

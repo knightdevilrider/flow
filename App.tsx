@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Patient, 
   UserRole, 
@@ -58,6 +58,7 @@ const publicBoardTitles: Record<string, string> = {
 
 const App: React.FC = () => {
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const backInterceptorRef = useRef<(() => boolean) | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedSubView, setSelectedSubView] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

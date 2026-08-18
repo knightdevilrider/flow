@@ -108,19 +108,19 @@ const FullScreenAnnouncement: React.FC<FullScreenAnnouncementProps & { currentLa
   }, [patient]);
 
   return (
-    <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500 select-none ${theme === 'light' ? 'bg-[#F5F5F7]/95' : 'bg-[#000]/95'} backdrop-blur-xl`}>
-      <div className="text-center relative z-10 w-full max-w-7xl px-6 sm:px-12 lg:px-20 py-12 sm:py-20 rounded-[3rem] sm:rounded-[5rem] border-4 shadow-2xl bg-white dark:bg-[#1D1D1F] border-[#0A84FF]/30 mx-4">
-        <h3 className="text-2xl sm:text-5xl font-black text-[#0A84FF] uppercase tracking-[0.5em] sm:tracking-[1em] mb-6 sm:mb-12 animate-pulse">{t.calling}</h3>
-        {patient.publicDisplayConsent && patient.photo && <div className="mb-8 flex justify-center"><img src={patient.photo} alt="Patient" className="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 rounded-full border-8 border-[#0A84FF] shadow-2xl object-cover" /></div>}
+    <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center animate-in fade-in zoom-in duration-500 select-none ${theme === 'light' ? 'bg-[#050505]/95' : 'bg-[#050505]/95'} backdrop-blur-xl`}>
+      <div className="text-center relative z-10 w-full max-w-7xl px-6 sm:px-12 lg:px-20 py-12 sm:py-20 rounded-[3rem] sm:rounded-[5rem] border-4 shadow-2xl bg-white dark:bg-[#0a0a0a] border-emerald-500/30 mx-4">
+        <h3 className="text-2xl sm:text-5xl font-black text-emerald-500 uppercase tracking-[0.5em] sm:tracking-[1em] mb-6 sm:mb-12 animate-pulse">{t.calling}</h3>
+        {patient.publicDisplayConsent && patient.photo && <div className="mb-8 flex justify-center"><img src={patient.photo} alt="Patient" className="w-48 h-48 sm:w-64 sm:h-64 md:w-96 md:h-96 rounded-full border-8 border-emerald-500 shadow-2xl object-cover" /></div>}
         <h2 className="text-5xl sm:text-7xl md:text-[10rem] lg:text-[12rem] font-black text-[#1D1D1F] dark:text-white leading-tight sm:leading-none mb-4 tracking-tighter break-words">{currentLang === 'en' ? patient.name : transliterateToDevanagari(patient.name)}</h2>
         <p className="text-xl sm:text-3xl md:text-5xl font-bold text-[#86868b] mb-10 sm:mb-20 tracking-[0.1em] sm:tracking-[0.2em]">{t.patientId}: {patient.id}</p>
         
         <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
-          <div className="inline-block px-12 sm:px-24 py-6 sm:py-12 bg-[#0A84FF] rounded-full shadow-2xl">
+          <div className="inline-block px-12 sm:px-24 py-6 sm:py-12 bg-emerald-500 rounded-full shadow-2xl">
             <p className="text-2xl sm:text-5xl md:text-7xl font-black text-white uppercase tracking-widest leading-none">{t.status[patient.status] || STATUS_LABELS[patient.status]}</p>
           </div>
-          <div className="inline-block px-12 sm:px-24 py-6 sm:py-12 border-4 border-[#0A84FF] rounded-full">
-            <p className="text-2xl sm:text-5xl md:text-7xl font-black text-[#0A84FF] uppercase tracking-widest leading-none tabular-nums">
+          <div className="inline-block px-12 sm:px-24 py-6 sm:py-12 border-4 border-emerald-500 rounded-full">
+            <p className="text-2xl sm:text-5xl md:text-7xl font-black text-emerald-500 uppercase tracking-widest leading-none tabular-nums">
               0{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
             </p>
           </div>
@@ -207,34 +207,34 @@ const PublicDisplayView: React.FC<{
 
   const themeStyles = {
     light: {
-      bg: 'bg-[#F5F5F7]',
-      card: 'bg-white border-[#D2D2D7]',
-      header: 'bg-white border-[#D2D2D7] text-[#1D1D1F]',
-      text: 'text-[#1D1D1F]',
-      sub: 'text-[#86868b]',
-      accent: 'text-[#0071e3]',
-      row: 'bg-white border-[#D2D2D7]',
-      rowAlt: 'bg-[#F5F5F7] border-[#D2D2D7]',
+      bg: 'bg-[#050505]',
+      card: 'bg-[#0a0a0a] border border-white/5',
+      header: 'bg-[#0a0a0a] border-b border-white/5 text-white',
+      text: 'text-white',
+      sub: 'text-white/50',
+      accent: 'text-emerald-400',
+      row: 'bg-[#0a0a0a] border-white/5',
+      rowAlt: 'bg-white/5 border-white/5',
     },
     dark: {
-      bg: 'bg-[#000]',
-      card: 'bg-[#1D1D1F] border-[#333]',
-      header: 'bg-[#1D1D1F] border-[#333] text-white',
+      bg: 'bg-[#050505]',
+      card: 'bg-[#0a0a0a] border border-white/5',
+      header: 'bg-[#0a0a0a] border-b border-white/5 text-white',
       text: 'text-white',
-      sub: 'text-[#86868b]',
-      accent: 'text-[#0A84FF]',
-      row: 'bg-[#1D1D1F] border-[#333]',
-      rowAlt: 'bg-[#2D2D2D] border-[#333]',
+      sub: 'text-white/50',
+      accent: 'text-emerald-400',
+      row: 'bg-[#0a0a0a] border-white/5',
+      rowAlt: 'bg-white/5 border-white/5',
     },
     titanium: {
-      bg: 'bg-[#1D1D1F]',
-      card: 'bg-[#4D4D4D] border-[#5D5D5D]',
-      header: 'bg-[#4D4D4D] border-[#5D5D5D] text-[#E8E8ED]',
-      text: 'text-[#E8E8ED]',
-      sub: 'text-[#A1A1A6]',
-      accent: 'text-[#0A84FF]',
-      row: 'bg-[#4D4D4D] border-[#5D5D5D]',
-      rowAlt: 'bg-[#5D5D5D] border-[#5D5D5D]',
+      bg: 'bg-[#050505]',
+      card: 'bg-[#0a0a0a] border border-white/5',
+      header: 'bg-[#0a0a0a] border-b border-white/5 text-white',
+      text: 'text-white',
+      sub: 'text-white/50',
+      accent: 'text-emerald-400',
+      row: 'bg-[#0a0a0a] border-white/5',
+      rowAlt: 'bg-white/5 border-white/5',
     }
   };
 
@@ -329,7 +329,7 @@ const PublicDisplayView: React.FC<{
       
       const { pct, label } = getProgress(p.status);
 
-      let containerCls = 'p-5 min-h-[110px] bg-[#1C1C1E] dark:bg-[#2C2C2E] border border-white/10 rounded-[1.5rem] flex items-center gap-6 shrink-0 shadow-lg';
+      let containerCls = 'p-5 min-h-[110px] bg-white/5 dark:bg-[#2C2C2E] border border-white/10 rounded-[1.5rem] flex items-center gap-6 shrink-0 shadow-lg';
       let numCls = 'text-[40px] w-16 text-center';
       let firstCls = 'text-2xl';
       let lastCls = 'text-xl';
@@ -341,7 +341,7 @@ const PublicDisplayView: React.FC<{
 
       if (isLarge) {
         if (i === 0) {
-          containerCls = 'p-8 min-h-[220px] bg-[#007AFF] rounded-[2.5rem] border-8 border-white/10 ring-4 ring-[#007AFF] flex flex-col justify-between shrink-0 shadow-2xl';
+          containerCls = 'p-8 min-h-[220px] bg-emerald-500 rounded-[2.5rem] border-8 border-white/10 ring-4 ring-emerald-500 flex flex-col justify-between shrink-0 shadow-2xl';
           numCls = 'text-[100px]';
           firstCls = 'text-6xl';
           lastCls = 'text-5xl';
@@ -351,7 +351,7 @@ const PublicDisplayView: React.FC<{
           statusCls = 'text-3xl lg:text-4xl';
           waitCls = 'text-sm';
         } else if (i === 1) {
-          containerCls = 'p-6 min-h-[140px] bg-[#007AFF]/90 rounded-[1.5rem] border-4 border-white/10 flex flex-col justify-between shrink-0 shadow-xl';
+          containerCls = 'p-6 min-h-[140px] bg-emerald-500/90 rounded-[1.5rem] border-4 border-white/10 flex flex-col justify-between shrink-0 shadow-xl';
           numCls = 'text-[60px]';
           firstCls = 'text-4xl';
           lastCls = 'text-3xl';
@@ -361,7 +361,7 @@ const PublicDisplayView: React.FC<{
           statusCls = 'text-xl lg:text-2xl';
           waitCls = 'text-[10px]';
         } else {
-          containerCls = 'p-4 min-h-[90px] bg-[#007AFF]/80 rounded-[1rem] border-2 border-white/10 flex flex-col justify-between shrink-0 shadow-lg';
+          containerCls = 'p-4 min-h-[90px] bg-emerald-500/80 rounded-[1rem] border-2 border-white/10 flex flex-col justify-between shrink-0 shadow-lg';
           numCls = 'text-[40px]';
           firstCls = 'text-2xl';
           lastCls = 'text-xl';
@@ -382,7 +382,7 @@ const PublicDisplayView: React.FC<{
           className={`relative overflow-hidden group transition-all duration-500 ${containerCls}`}
         >
           {isLarge && i === 0 && (
-            <div className="absolute top-0 right-0 px-8 py-2 bg-white text-[#007AFF] font-black text-xs uppercase tracking-[0.4em] rounded-bl-3xl shadow-lg animate-pulse z-20">
+            <div className="absolute top-0 right-0 px-8 py-2 bg-white text-emerald-500 font-black text-xs uppercase tracking-[0.4em] rounded-bl-3xl shadow-lg animate-pulse z-20">
               Next to Call
             </div>
           )}
@@ -437,8 +437,8 @@ const PublicDisplayView: React.FC<{
           ) : (
             <>
               <span className={`${numCls} font-black text-[#8E8E93] text-center`}>{String(i + 1).padStart(2, '0')}</span>
-              <div className="w-10 h-10 rounded-full bg-[#007AFF]/20 flex items-center justify-center shrink-0">
-                <User className="w-5 h-5 text-[#0A84FF]" />
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-emerald-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className={`text-lg font-black uppercase truncate ${s.text}`}>{p.name}</h3>
@@ -569,9 +569,9 @@ const PublicDisplayView: React.FC<{
             <button
               key={item.id}
               onClick={() => onSelect(item.id)}
-              className="bg-white/5 backdrop-blur-md border border-white/10 hover:border-[#0A84FF] hover:bg-[#0A84FF]/20 text-white rounded-[3rem] px-12 py-10 shadow-2xl transition-all hover:scale-105 active:scale-95 group flex items-center justify-center min-w-[250px]"
+              className="bg-white/5 backdrop-blur-md border border-white/10 hover:border-emerald-500 hover:bg-emerald-500/20 text-white rounded-[3rem] px-12 py-10 shadow-2xl transition-all hover:scale-105 active:scale-95 group flex items-center justify-center min-w-[250px]"
             >
-              <span className="text-2xl sm:text-4xl font-black uppercase tracking-widest group-hover:text-[#0A84FF] drop-shadow-md">{item.label}</span>
+              <span className="text-2xl sm:text-4xl font-black uppercase tracking-widest group-hover:text-emerald-500 drop-shadow-md">{item.label}</span>
             </button>
           ))}
         </div>
@@ -656,7 +656,7 @@ const PublicDisplayView: React.FC<{
                   setTargetTreatment('');
                   setTargetWard('');
                 }}
-                className="bg-[#1C1C1E] dark:bg-[#2C2C2E] hover:bg-white/10 text-white border border-white/20 rounded-2xl px-6 py-2 outline-none text-sm font-black tracking-widest uppercase shadow-xl transition-all"
+                className="bg-white/5 dark:bg-[#2C2C2E] hover:bg-white/10 text-white border border-white/20 rounded-2xl px-6 py-2 outline-none text-sm font-black tracking-widest uppercase shadow-xl transition-all"
               >
                 Change Selection
               </button>
@@ -696,12 +696,12 @@ const PublicDisplayView: React.FC<{
       </div>
 
       {/* High-Fidelity News Ticker Footer */}
-      <div className="h-12 bg-[#007AFF] flex items-center overflow-hidden border-t-2 border-white/20 shadow-[0_-10px_30px_rgba(0,122,255,0.2)] z-30">
+      <div className="h-12 bg-emerald-500 flex items-center overflow-hidden border-t-2 border-white/20 shadow-[0_-10px_30px_rgba(0,122,255,0.2)] z-30">
         <div className="animate-marquee flex gap-24 items-center whitespace-nowrap">
-          <span className="text-white text-xl font-black uppercase tracking-[0.3em]">
+          <span className="text-emerald-500/50 text-xl font-black uppercase tracking-[0.3em]">
              THANK YOU FOR YOUR COOPERATION • WELCOME TO SAIDEEP HOSPITAL • PLEASE WATCH FOR YOUR NAME • ADVANCED HEALTH SYSTEMS • 
           </span>
-          <span className="text-white text-xl font-black uppercase tracking-[0.3em]">
+          <span className="text-emerald-500/50 text-xl font-black uppercase tracking-[0.3em]">
              THANK YOU FOR YOUR COOPERATION • WELCOME TO SAIDEEP HOSPITAL • PLEASE WATCH FOR YOUR NAME • ADVANCED HEALTH SYSTEMS • 
           </span>
         </div>

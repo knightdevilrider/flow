@@ -5,6 +5,9 @@ import{ mockFirestore} from '../services/mockFirestore';
 import{ AreaAutocomplete} from '../components/AreaAutocomplete';
 import{ LOCALITY_DATABASE, LocalityInfo} from '../constants';
 import{ getPremiumStyles} from '../theme/premiumDesign';
+import { RegistryTable } from '../components/RegistryTable';
+import PatientTimelineModal from '../components/admin/PatientTimelineModal';
+import PatientFormModal from '../components/admin/PatientFormModal';
 
 interface StaffGateProps{
  patients: Patient[];
@@ -15,8 +18,19 @@ interface StaffGateProps{
  onDeletePatient?: (p: Patient) => void;
 }
 
-const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, isAdmin, onEditPatient, onDeletePatient}) =>{
+const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, isAdmin, onEditPatient, onDeletePatient, setBackInterceptor }) =>{
  const [step, setStep] = useState<'selection' | 'form'>('selection');
+  const [timelinePatient, setTimelinePatient] = useState<Patient | null>(null);
+  const [editPatient, setEditPatient] = useState<Patient | null>(null);
+
+  const handleSaveEdit = async (updatedData) => {
+    if (editPatient) {
+      await mockFirestore.updatePatient(editPatient.id, updatedData);
+      setEditPatient(null);
+    }
+  };
+
+  const gatePatients = patients.filter(p => p.status === PatientStatus.GATE_REGISTERED || p.status === PatientStatus.RECEPTION_WAITING);
 
   useEffect(() => {
     const handleAppBack = (e) => {
@@ -419,23 +433,13 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
  </div>
  </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-70 hover:opacity-100 transition-opacity">
-{patients.filter(p => p.status === PatientStatus.GATE_REGISTERED || p.status === PatientStatus.RECEPTION_WAITING)
- .filter(p => registryFilter === 'All' || p.category === registryFilter)
- .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
- .slice(0, 16)
- .map((p) => (
- <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
- <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
- <div className="min-w-0">
- <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
- <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>{p.category} •{new Date(p.timestamp).toLocaleTimeString([],{ hour: '2-digit', minute: '2-digit'})}</div>
- <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-80 ${s.accent} mt-0.5`}>Staff:{p.authorName || 'Unknown'}</div>
- </div>
- </div>
- ))
-}
- </div>
+ <RegistryTable 
+   patients={patients.filter(p => p.status === PatientStatus.GATE_REGISTERED || p.status === PatientStatus.RECEPTION_WAITING).filter(p => registryFilter === 'All' || p.category === registryFilter).slice(0, 16)} 
+   theme={theme} 
+   onEdit={setEditPatient}
+              onRowClick={(p) => isAdmin && setTimelinePatient(p)} 
+   hideCategoryFilter={true} 
+ />
  </div>
  </div>
  );
@@ -860,44 +864,9 @@ const StaffGate: React.FC<StaffGateProps> = ({ patients, theme, waitingCount, is
 
 {/* Processed Registry (Form View) */}
  <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 mx-auto mt-12 pb-10 border-t border-white/5 pt-8">
- <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
- <h3 className={`text-sm font-black uppercase tracking-widest ${s.sub}`}>Processed Registry (Gate Entry)</h3>
- 
- <div className="flex flex-wrap gap-2">
-{['All', ...Object.values(PatientCategory)].map(cat => (
- <button
- key={cat}
- onClick={() => setRegistryFilter(cat)}
- className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${
- registryFilter === cat 
- ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' 
- :`opacity-50 hover:opacity-100 border ${s.card}`
-}`}
- >
-{cat}
- </button>
- ))}
- </div>
- </div>
-
- <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 opacity-70 hover:opacity-100 transition-opacity">
-{patients.filter(p => p.status === PatientStatus.GATE_REGISTERED || p.status === PatientStatus.RECEPTION_WAITING)
- .filter(p => registryFilter === 'All' || p.category === registryFilter)
- .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
- .slice(0, 16)
- .map((p) => (
- <div key={p.id} className={`p-3 rounded-xl border flex items-center gap-3 ${s.card} border-emerald-500/20 bg-emerald-500/5`}>
- <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-500">✓</div>
- <div className="min-w-0">
- <div className={`text-[10px] font-black uppercase truncate ${s.header}`}>{p.name}</div>
- <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-50 ${s.sub}`}>{p.category} •{new Date(p.timestamp).toLocaleTimeString([],{ hour: '2-digit', minute: '2-digit'})}</div>
- <div className={`text-[7px] font-bold uppercase tracking-tighter opacity-80 ${s.accent} mt-0.5`}>Staff:{p.authorName || 'Unknown'}</div>
- </div>
- </div>
- ))
-}
- </div>
- </div>
+   <RegistryTable patients={gatePatients} theme={theme} onEdit={setEditPatient}
+              onRowClick={(p) => isAdmin && setTimelinePatient(p)} hideCategoryFilter={true} />
+  </div>
  </div>
  );
 };

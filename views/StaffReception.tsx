@@ -3,7 +3,9 @@ import { Patient, PatientStatus, Theme, Doctor } from '../types';
 import { mockFirestore } from '../services/mockFirestore';
 import { ReceptionSidebar } from '../components/admin/ReceptionSidebar';
 import { useIntercom } from '../src/contexts/IntercomContext';
-import { 
+import { RegistryTable } from '../components/RegistryTable';
+import PatientTimelineModal from '../components/admin/PatientTimelineModal';
+import {
   UserPlus, Search, Phone, Activity, Camera, Banknote, 
   CreditCard, QrCode, Stethoscope, FileText, BedDouble, AlertTriangle, PlayCircle, Siren, Zap, Edit
 } from 'lucide-react';
@@ -91,6 +93,21 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
     .slice(0, 50);
 
   const [isOverrideUnlocked, setIsOverrideUnlocked] = useState(false);
+  const [timelinePatient, setTimelinePatient] = useState<Patient | null>(null);
+
+  const handleRequestDelete = async (patient: Patient) => {
+    const reason = window.prompt(`Request deletion for ${patient.name}? Please provide a reason:`);
+    if (reason && reason.trim() !== '') {
+      await mockFirestore.updatePatient(patient.id, {
+        deletionRequest: {
+          requestedBy: 'Reception',
+          reason: reason.trim(),
+          requestedAt: Date.now()
+        }
+      });
+      alert('Deletion request sent to Admin.');
+    }
+  };
 
   const handleProcessPayment = async () => {
     if (!viewingPatient) return;
@@ -521,10 +538,14 @@ const StaffReception: React.FC<StaffReceptionProps> = ({ patients, theme, doctor
             )}
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-4 sm:p-8 opacity-50">
-            <PlayCircle className={`w-20 h-20 mb-6 ${s.sub}`} />
-            <h2 className={`text-2xl font-black mb-2 ${s.text}`}>Ready for Next Patient</h2>
-            <p className={`text-sm font-bold max-w-sm ${s.sub}`}>System is locked to strict First-Come-First-Serve mode. Click "Auto-Call Next" in the inbox to process the oldest token.</p>
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            <RegistryTable 
+              patients={patients}
+              theme={theme}
+              onEdit={onEditPatient}
+              onRowClick={(p) => isAdmin && setTimelinePatient(p)}
+              onDelete={handleRequestDelete}
+            />
           </div>
         )}
       </div>

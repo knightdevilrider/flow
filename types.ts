@@ -53,6 +53,8 @@ export interface TrackingLog {
   resultGenTime?: number; // For Lab/Diagnostics
   handoverTime?: number; // For Lab/Pharmacy
   exitTime?: number; // Milestone End / Stage Forwarded
+  authorId?: string; // Who made the update
+  note?: string; // Any notes left at this stage
   
   // IPD specific
   ipdOrderTime?: number;

@@ -66,14 +66,7 @@ const Layout: React.FC<LayoutProps> = ({
                   <span className="hidden sm:inline tracking-widest uppercase">Dashboard</span>
                 </button>
               )}
-              {onToggleAdmin && (
-                <button 
-                  onClick={onToggleAdmin}
-                  className={`px-3 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg ${isAdminMode ? 'bg-red-500 text-white' : s.btn}`}
-                >
-                  {isAdminMode ? '🔓 Admin' : '🔒 Admin'}
-                </button>
-              )}
+
             </div>
 
             {/* Center */}

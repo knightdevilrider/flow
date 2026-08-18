@@ -279,6 +279,10 @@ const App: React.FC = () => {
   };
 
   const handleBack = () => {
+    const event = new CustomEvent('app-back-button', { cancelable: true });
+    window.dispatchEvent(event);
+    if (event.defaultPrevented) return;
+
     if (showSettings) {
       setShowSettings(false);
       return;
